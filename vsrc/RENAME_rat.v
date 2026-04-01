@@ -53,10 +53,10 @@ module RENAME_rat (
       end
     end else begin
       // 更新映射关系
-      if (nprd_0_we) begin
+      if (nprd_0_we && (idu_rd_0 != 0)) begin
         rat[idu_rd_0] <= nprd_0; // 将逻辑寄存器idu_rd_0映射到新的物理寄存器nprd_0
       end
-      if (nprd_1_we) begin
+      if (nprd_1_we && (idu_rd_1 != 0)) begin
         rat[idu_rd_1] <= nprd_1; // 将逻辑寄存器idu_rd_1映射到新的物理寄存器nprd_1
       end
     end

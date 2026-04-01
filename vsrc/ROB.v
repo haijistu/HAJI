@@ -94,10 +94,10 @@ module ROB (
         rob_complete[tail[`ROB_ADDR_WIDTH-1:0]] <= 0;
 
         rob_fu_type[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_fu_type_1;
-        rob_areg[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_rd_0;
-        rob_preg[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_preg_0;
-        rob_opreg[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_opreg_0;
-        rob_pc[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_pc_0;
+        rob_areg[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_rd_1;
+        rob_preg[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_preg_1;
+        rob_opreg[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_opreg_1;
+        rob_pc[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_pc_1;
         rob_rd_valid[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_rd_1_valid;
         rob_inst[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_inst_1;
         rob_complete[tail_next[`ROB_ADDR_WIDTH-1:0]] <= 0;
@@ -181,10 +181,10 @@ module ROB (
   assign retire_preg_0 = rob_preg[head[`ROB_ADDR_WIDTH-1:0]];
   assign retire_preg_1 = rob_preg[head_next[`ROB_ADDR_WIDTH-1:0]];
   
-  reg [`PADDR_WIDTH-1:0] retire_pc_0 = rob_pc[head[`ROB_ADDR_WIDTH-1:0]];
-  reg [`PADDR_WIDTH-1:0] retire_pc_1 = rob_pc[head_next[`ROB_ADDR_WIDTH-1:0]];
-  reg [`WORD_WIDTH-1:0]  retire_inst_0 = rob_pc[head[`ROB_ADDR_WIDTH-1:0]];
-  reg [`WORD_WIDTH-1:0]  retire_inst_1 = rob_pc[head_next[`ROB_ADDR_WIDTH-1:0]];
+  reg [`PADDR_WIDTH-1:0] retire_pc_0 = 0;
+  reg [`PADDR_WIDTH-1:0] retire_pc_1 = 0;
+  reg [`WORD_WIDTH-1:0]  retire_inst_0 = 0;
+  reg [`WORD_WIDTH-1:0]  retire_inst_1 = 0;
   
   always @(*) begin
     retire_valid_0 = rob_complete[head[`ROB_ADDR_WIDTH-1:0]];

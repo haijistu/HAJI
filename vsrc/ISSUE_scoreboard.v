@@ -23,8 +23,8 @@ module ISSUE_scoreboard (
   output                        src1_ready_1,
   output                        src2_ready_1
 );
-  reg preg_ready [0:`PREG_NUM-1];
-  reg preg_ready_next [0:`PREG_NUM-1];
+  reg [`PREG_NUM-1:0] preg_ready;
+  reg [`PREG_NUM-1:0] preg_ready_next;
   integer i;
   always @(*) begin
     // 默认保持
@@ -44,10 +44,16 @@ module ISSUE_scoreboard (
 
     if (retire_valid_1 && retire_prd_1 != 0)
       preg_ready_next[retire_prd_1] = 1'b1;
+    
+    preg_ready_next[0] = 1'b1; // 0号物理寄存器始终保持ready
   end
 
   always @(posedge clock) begin
-    if(reset) preg_ready[i] <= 1;
+    if(reset) begin 
+      for(i = 0; i < `PREG_NUM; i = i + 1) begin
+        preg_ready[i] <= 1;
+      end
+    end
     else begin
       for(i = 0; i < `PREG_NUM; i = i + 1) begin
         preg_ready[i] <= preg_ready_next[i];

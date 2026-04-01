@@ -10,7 +10,9 @@ module ISSUE_inorder_queue (
   input                         dispatch_imm_valid_0,
   input [`PADDR_WIDTH-1:0]      dispatch_pc_0,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prs1_0,
+  input                         dispatch_prs1_valid_0,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prs2_0,
+  input                         dispatch_prs2_valid_0,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prd_0,
   input [`ROB_ADDR_WIDTH-1:0]   dispatch_rob_idx_0,
 
@@ -20,7 +22,9 @@ module ISSUE_inorder_queue (
   input                         dispatch_imm_valid_1,
   input [`PADDR_WIDTH-1:0]      dispatch_pc_1,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prs1_1,
+  input                         dispatch_prs1_valid_1,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prs2_1,
+  input                         dispatch_prs2_valid_1,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prd_1,
   input [`ROB_ADDR_WIDTH-1:0]   dispatch_rob_idx_1,
   
@@ -31,7 +35,6 @@ module ISSUE_inorder_queue (
 
   // issue
   output                        issue_valid,
-  input                         fu_ready,
   output [`OP_WIDTH-1:0]        issue_op,
   output [`WORD_WIDTH-1:0]      issue_imm,
   output                        issue_imm_valid,
@@ -128,7 +131,7 @@ module ISSUE_inorder_queue (
       end
 
       // issue
-      if(fu_ready) begin
+      if(issue_valid) begin
         queue_free[head[`QUEUE_ADDR_WIDTH-1:0]] <= 0;
         head <= head + 1;
       end
@@ -141,18 +144,18 @@ module ISSUE_inorder_queue (
       queue_src2_ready_next[i] = queue_src2_ready[i];
     end
     if(dispatch_valid_0 && dispatch_valid_1) begin
-      queue_src1_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_ready_0;
-      queue_src2_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_ready_0;
-      queue_src1_ready_next[tail_next[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_ready_1;
-      queue_src2_ready_next[tail_next[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_ready_1;
+      queue_src1_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_valid_0 ? dispatch_prs1_ready_0 : 1'b1;
+      queue_src2_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_valid_0 ? dispatch_prs2_ready_0 : 1'b1;
+      queue_src1_ready_next[tail_next[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_valid_1 ? dispatch_prs1_ready_1 : 1'b1;
+      queue_src2_ready_next[tail_next[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_valid_1 ? dispatch_prs2_ready_1 : 1'b1;
     end
     else if(dispatch_valid_0) begin
-      queue_src1_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_ready_0;
-      queue_src2_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_ready_0;
+      queue_src1_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_valid_0 ? dispatch_prs1_ready_0 : 1'b1;
+      queue_src2_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_valid_0 ? dispatch_prs2_ready_0 : 1'b1;
     end
     else begin
-      queue_src1_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_ready_1;
-      queue_src2_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_ready_1;
+      queue_src1_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_valid_1 ? dispatch_prs1_ready_1 : 1'b1;
+      queue_src2_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_valid_1 ? dispatch_prs2_ready_1 : 1'b1;
     end
     if(retire_valid_0) begin
       for (i = 0; i < `QUEUE_SIZE; i = i + 1) begin
@@ -173,7 +176,13 @@ module ISSUE_inorder_queue (
   end
 
   always @(posedge clock or posedge reset) begin
-    if(~reset) begin
+    if(reset) begin
+      for(i = 0; i < `QUEUE_SIZE; i = i + 1) begin
+        queue_src1_ready[i] <= 0;
+        queue_src2_ready[i] <= 0;
+      end
+    end
+    else begin
       for(i = 0; i < `QUEUE_SIZE; i = i + 1) begin
         queue_src1_ready[i] <= queue_src1_ready_next[i];
         queue_src2_ready[i] <= queue_src2_ready_next[i];

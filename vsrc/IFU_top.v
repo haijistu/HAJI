@@ -28,7 +28,7 @@ module IFU_top (
 // 每次取指获取两条指令，支持单发和双发模式
   // 上电初始化
   reg [`PADDR_WIDTH-1:0] pc = `INIT_PC;
-  wire [`PADDR_WIDTH-1:0] next_pc = exc_jump_flag ? exc_jump_addr : jump_flag ? jump_addr : (pc + 32'd4);
+  wire [`PADDR_WIDTH-1:0] next_pc = exc_jump_flag ? exc_jump_addr : jump_flag ? jump_addr : (pc + 32'd8);
   
   // C1: 发送取指请求
   // C2: 等待指令返回

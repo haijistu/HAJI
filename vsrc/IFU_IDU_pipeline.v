@@ -36,8 +36,8 @@ always @(posedge clock or posedge reset) begin
     else idu_valid_0 <= 1'b0;
 
     if(ifu_valid_1) begin
-      idu_inst_1 <= ifu_inst_0;
-      idu_pc_1 <= ifu_pc_0;
+      idu_inst_1 <= ifu_inst_1;
+      idu_pc_1 <= ifu_pc_1;
       idu_valid_1 <= 1'b1;
     end
     else idu_valid_1 <= 1'b0;

@@ -10,7 +10,9 @@ module ISSUE_outoforder_queue (
   input                         dispatch_imm_valid_0,
   input [`PADDR_WIDTH-1:0]      dispatch_pc_0,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prs1_0,
+  input                         dispatch_prs1_valid_0,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prs2_0,
+  input                         dispatch_prs2_valid_0,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prd_0,
   input [`ROB_ADDR_WIDTH-1:0]   dispatch_rob_idx_0,
 
@@ -20,7 +22,9 @@ module ISSUE_outoforder_queue (
   input                         dispatch_imm_valid_1,
   input [`PADDR_WIDTH-1:0]      dispatch_pc_1,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prs1_1,
+  input                         dispatch_prs1_valid_1,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prs2_1,
+  input                         dispatch_prs2_valid_1,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prd_1,
   input [`ROB_ADDR_WIDTH-1:0]   dispatch_rob_idx_1,
 
@@ -31,7 +35,6 @@ module ISSUE_outoforder_queue (
 
   // issue
   output reg                        issue_valid,
-  input                             fu_ready,
   output [`OP_WIDTH-1:0]        issue_op,
   output [`WORD_WIDTH-1:0]      issue_imm,
   output                        issue_imm_valid,
@@ -70,12 +73,12 @@ module ISSUE_outoforder_queue (
   freelist #(
     .DATA_WIDTH(`QUEUE_ADDR_WIDTH),
     .DATA_DEPTH(`QUEUE_SIZE)
-  ) rename_freelist (
+  ) issue_freelist (
     .clock(clock),
     .reset(reset),
     .pop0_valid(dispatch_valid_0),
     .pop1_valid(dispatch_valid_1),
-    .push0_valid(fu_ready),
+    .push0_valid(issue_valid),
     .push1_valid(),
     .push0(issue_idx),
     .push1(),
@@ -159,18 +162,18 @@ module ISSUE_outoforder_queue (
       queue_src2_ready_next[i] = queue_src2_ready[i];
     end
     if(dispatch_valid_0 && dispatch_valid_1) begin
-      queue_src1_ready_next[free_id_0] = dispatch_prs1_ready_0;
-      queue_src2_ready_next[free_id_0] = dispatch_prs2_ready_0;
-      queue_src1_ready_next[free_id_1] = dispatch_prs1_ready_1;
-      queue_src2_ready_next[free_id_1] = dispatch_prs2_ready_1;
+      queue_src1_ready_next[free_id_0] = dispatch_prs1_valid_0 ? dispatch_prs1_ready_0 : 1'b1;
+      queue_src2_ready_next[free_id_0] = dispatch_prs2_valid_0 ? dispatch_prs2_ready_0 : 1'b1;
+      queue_src1_ready_next[free_id_1] = dispatch_prs1_valid_1 ? dispatch_prs1_ready_1 : 1'b1;
+      queue_src2_ready_next[free_id_1] = dispatch_prs2_valid_1 ? dispatch_prs2_ready_1 : 1'b1;
     end
     else if(dispatch_valid_0) begin
-      queue_src1_ready_next[free_id_0] = dispatch_prs1_ready_0;
-      queue_src2_ready_next[free_id_0] = dispatch_prs2_ready_0;
+      queue_src1_ready_next[free_id_0] = dispatch_prs1_valid_0 ? dispatch_prs1_ready_0 : 1'b1;
+      queue_src2_ready_next[free_id_0] = dispatch_prs2_valid_0 ? dispatch_prs2_ready_0 : 1'b1;
     end
     else begin
-      queue_src1_ready_next[free_id_0] = dispatch_prs1_ready_1;
-      queue_src2_ready_next[free_id_0] = dispatch_prs2_ready_1;
+      queue_src1_ready_next[free_id_0] = dispatch_prs1_valid_1 ? dispatch_prs1_ready_1 : 1'b1;
+      queue_src2_ready_next[free_id_0] = dispatch_prs2_valid_1 ? dispatch_prs2_ready_1 : 1'b1;
     end
     if(retire_valid_0) begin
       for (i = 0; i < `QUEUE_SIZE; i = i + 1) begin
@@ -203,8 +206,8 @@ module ISSUE_outoforder_queue (
   always @(*) begin
     issue_valid = 0;
     issue_idx = 0;
-    for (int i = 0; i < `QUEUE_SIZE; i++) begin
-      if (ready_vec[i] && !issue_valid) begin
+    for (i = 0; i < `QUEUE_SIZE; i++) begin
+      if (ready_vec[i]) begin
         issue_valid = 1;
         issue_idx = i[`QUEUE_ADDR_WIDTH-1:0];
       end

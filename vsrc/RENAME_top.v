@@ -54,7 +54,7 @@ module RENAME_top (
   wire [`PREG_ADDR_WIDTH-1:0] nprd_1;
   wire nprd_0_we = waw_rd_0 ? 1'b0 : rd_0_valid;
   wire nprd_1_we = rd_1_valid;
-  freelist #(
+  RENAME_freelist #(
     .DATA_WIDTH(`PREG_ADDR_WIDTH),
     .DATA_DEPTH(`PREG_NUM)
   ) rename_freelist  (

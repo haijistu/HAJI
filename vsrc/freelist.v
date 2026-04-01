@@ -32,11 +32,13 @@ module freelist #(
       end
     end else begin
       // 处理pop0和pop1操作
-      if (pop0_valid && !empty) begin
-        head <= head + 1; // pop0操作，读指针前移
-      end
-      if (pop1_valid && !empty) begin
-        head <= head + 1; // pop1操作，读指针前移
+      if(!empty) begin
+        if (pop0_valid && pop1_valid) begin
+          head <= head + 2; // pop0操作，读指针前移
+        end
+        else if (pop0_valid || pop1_valid) begin
+          head <= head + 1; // pop1操作，读指针前移
+        end
       end
       if (push0_valid) begin
         tail <= tail + 1; // push0操作，写指针前移
@@ -47,5 +49,5 @@ module freelist #(
     end
   end
   assign pop0 = free_list[head[DATA_WIDTH-1:0]];
-  assign pop1 = free_list[head_next[DATA_WIDTH-1:0]];
+  assign pop1 = pop0_valid ? free_list[head_next[DATA_WIDTH-1:0]] : free_list[head[DATA_WIDTH-1:0]];
 endmodule

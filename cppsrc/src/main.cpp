@@ -17,7 +17,7 @@ int main(int argc, char* argv[]) {
 #ifdef CONFIG_WAVEFORM
   Verilated::traceEverOn(true);
   tfp = new VerilatedFstC;
-  top->trace(tfp, 99);
+  top->trace(tfp, 0);
   tfp->open("waveform/ysyxSoCFull_waveform.fst");
 #endif
   init_monitor(argc, argv);

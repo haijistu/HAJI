@@ -92,24 +92,24 @@ module ISSUE_top (
 
     .query_psrc1_0(idu_prs1_0),
     .query_psrc2_0(idu_prs2_0),
-    .query_psrc1_1(idu_prs1_0),
-    .query_psrc2_1(idu_prs2_0),
+    .query_psrc1_1(idu_prs1_1),
+    .query_psrc2_1(idu_prs2_1),
     .src1_ready_0(src1_ready_0),
     .src2_ready_0(src2_ready_0),
     .src1_ready_1(src1_ready_1),
     .src2_ready_1(src2_ready_1)
   );
 
-  wire alu_fu_ready;
-  wire lsu_fu_ready;
-  wire bru_fu_ready;
   ISSUE_queue queue(
     .clock(clock),
     .reset(reset),
     // dispatch
     .prs1_0(idu_prs1_0),
+    .prs1_valid_0(idu_prs1_valid_0),
     .prs2_0(idu_prs2_0),
+    .prs2_valid_0(idu_prs2_valid_0),
     .prd_0(idu_prd_0),
+    .prd_valid_0(idu_prd_valid_0),
     .inst0_valid(idu_valid_0),
     .op_0(idu_op_0),
     .fu_type_0(idu_fu_type_0),
@@ -118,8 +118,11 @@ module ISSUE_top (
     .pc_0(idu_pc_0),
 
     .prs1_1(idu_prs1_1),
+    .prs1_valid_1(idu_prs1_valid_1),
     .prs2_1(idu_prs2_1),
+    .prs2_valid_1(idu_prs2_valid_1),
     .prd_1(idu_prd_1),
+    .prd_valid_1(idu_prd_valid_1),
     .inst1_valid(idu_valid_0),
     .op_1(idu_op_1),
     .fu_type_1(idu_fu_type_1),
@@ -134,9 +137,6 @@ module ISSUE_top (
     .prs2_ready_0(src2_ready_0),
     .prs1_ready_1(src1_ready_1),
     .prs2_ready_1(src2_ready_1),
-    .alu_fu_ready(alu_fu_ready),
-    .lsu_fu_ready(lsu_fu_ready),
-    .bru_fu_ready(bru_fu_ready),
 
     .retire_valid_0(retire_valid_0),
     .retire_prd_0(retire_prd_0),

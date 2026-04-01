@@ -143,5 +143,5 @@ module ICACHE_top (
     end
   end
   assign icache_ivalid = ivalid;
-  assign icache_idata = {cache_data[index] >> (offset * 16)}[63:0]; // 根据offset选择对应的4字节指令数据
+  assign icache_idata = {cache_data[index] >> (offset * 8)}[63:0]; // 根据offset选择对应的4字节指令数据
 endmodule

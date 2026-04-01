@@ -400,9 +400,9 @@ module riscv32(
     .idu_pc_0(ifu_idu_pc_0),
     .idu_inst_0(ifu_idu_inst_0),
     .idu_valid_0(ifu_idu_valid_0),
-    .idu_pc_1(ifu_idu_pc_0),
-    .idu_inst_1(ifu_idu_inst_0),
-    .idu_valid_1(ifu_idu_valid_0)
+    .idu_pc_1(ifu_idu_pc_1),
+    .idu_inst_1(ifu_idu_inst_1),
+    .idu_valid_1(ifu_idu_valid_1)
   );
 
   IDU_top IDU0(

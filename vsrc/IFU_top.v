@@ -11,6 +11,13 @@ module IFU_top (
   output [`PADDR_WIDTH-1:0]           ifu_araddr, // 取指地址
   output                              ifu_rready, // 取指数据准备好
 
+  // IDU-bru
+  input                               idu_bru_valid,
+  // retire-bru
+  input                               retire_bru_valid,
+  input [`PADDR_WIDTH-1:0]            retire_bru_addr,
+  input                               retire_bru_flag,
+
   // 传输至idu的数据
   output reg [`PADDR_WIDTH-1:0] ifu_inst0,
   output reg [`PADDR_WIDTH-1:0] ifu_inst1,
@@ -19,8 +26,6 @@ module IFU_top (
   output [`PADDR_WIDTH-1:0]     ifu_pc0,
   output [`PADDR_WIDTH-1:0]     ifu_pc1,
   // Jump Target
-  input [`PADDR_WIDTH-1:0] jump_addr,
-  input jump_flag,
   input [`PADDR_WIDTH-1:0] exc_jump_addr,
   input exc_jump_flag
 );
@@ -28,33 +33,35 @@ module IFU_top (
 // 每次取指获取两条指令，支持单发和双发模式
   // 上电初始化
   reg [`PADDR_WIDTH-1:0] pc = `INIT_PC;
-  wire [`PADDR_WIDTH-1:0] next_pc = exc_jump_flag ? exc_jump_addr : jump_flag ? jump_addr : (pc + 32'd8);
+  wire [`PADDR_WIDTH-1:0] next_pc = exc_jump_flag ? exc_jump_addr : retire_bru_valid ? (retire_bru_flag ? retire_bru_addr : pc) : pc + 32'd8;
   
   // C1: 发送取指请求
   // C2: 等待指令返回
   // C3: 指令有效，执行指令
-  localparam C0 = 2'b00, C1 = 2'b01, C2 = 2'b10, C3 = 2'b11;
-  reg [1:0] state;
+  localparam C0 = 3'b000, C1 = 3'b001, C2 = 3'b010, C3 = 3'b011, C4 = 3'b100;
+  reg [2:0] state;
   always @(posedge clock) begin
     if(reset) begin
       state <= C0;
     end
     else begin 
       case (state)
-        C1: state <= icache_iarready ? C2 : C1;
+        C1: state <= idu_bru_valid ? C4 : icache_iarready ? C2 : C1;
         C2: state <= icache_ivalid ? C3 : C2;
         C3: state <= C1;
+        C4: state <= retire_bru_valid ? C1 : C4;
         default: state <= C1;
       endcase
     end
   end
 
-  assign ifu_arvalid = (state == C1);
+  assign ifu_arvalid = (state == C1) && ~idu_bru_valid;
   assign ifu_araddr = pc;
   assign ifu_rready = (state == C2);
   always @(posedge clock) begin
     if(reset) pc <= `INIT_PC;
     else if (state == C3) pc <= next_pc;
+    else if (retire_bru_valid) pc <= next_pc;
   end
 
   assign ifu_pc0 = pc;

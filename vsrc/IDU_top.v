@@ -60,11 +60,17 @@ module IDU_top (
   output                            idu_imm_1_valid,
   output     [`OP_WIDTH-1:0]        idu_op_1,
   output     [`FU_TYPE_WIDTH-1:0]   idu_fu_type_1,
-  output     [`PADDR_WIDTH-1:0]     idu_pc_1
+  output     [`PADDR_WIDTH-1:0]     idu_pc_1,
+
+  output                            idu_bru_valid
 );
 
+// 遇到分支指令就暂停取指
 assign idu_valid_0 = ifu_valid_0;
-assign idu_valid_1 = ifu_valid_1;
+assign idu_valid_1 = (idu_fu_type_0 == `FU_BRU || idu_fu_type_0 == `FU_JUMP) ? 1'b0 : ifu_valid_1;
+
+assign idu_bru_valid = ((ifu_valid_0 && (idu_fu_type_0 == `FU_BRU || idu_fu_type_0 == `FU_JUMP)) || (ifu_valid_1 && (idu_fu_type_1 == `FU_BRU || idu_fu_type_1 == `FU_JUMP)));
+
 assign idu_pc_0 = ifu_pc_0;
 assign idu_pc_1 = ifu_pc_1;
 assign idu_prs1_0 = rename_prs1_0;

@@ -67,7 +67,7 @@ module ISSUE_inorder_queue (
   wire [`QUEUE_ADDR_WIDTH:0] tail_next = tail + 1;
   
   wire head_valid = queue_free[head[`QUEUE_ADDR_WIDTH-1:0]];
-  wire head_ready = queue_src1_ready[head[`QUEUE_ADDR_WIDTH-1:0]];
+  wire head_ready = queue_src1_ready[head[`QUEUE_ADDR_WIDTH-1:0]] && queue_src2_ready[head[`QUEUE_ADDR_WIDTH-1:0]];
 
   integer i;
   always @(posedge clock or posedge reset) begin

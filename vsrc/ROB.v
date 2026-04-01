@@ -57,7 +57,14 @@ module ROB (
   output [`WORD_WIDTH-1:0]      retire_wd_0,
   output [`WORD_WIDTH-1:0]      retire_wd_1,
   output [`PREG_ADDR_WIDTH-1:0] retire_wa_0,
-  output [`PREG_ADDR_WIDTH-1:0] retire_wa_1
+  output [`PREG_ADDR_WIDTH-1:0] retire_wa_1,
+
+  // retire - bru
+  // 只会退休一条分支指令，不会退休后面满足条件的指令
+  output                          retire_bru_valid,
+  output [`PADDR_WIDTH-1:0]       retire_bru_addr,
+  output                          retire_bru_flag
+
 );
 
   // 基于FIFO实现的ROB
@@ -180,7 +187,14 @@ module ROB (
   assign retire_rob_idx_1 = head_next[`ROB_ADDR_WIDTH-1:0];
   assign retire_preg_0 = rob_preg[head[`ROB_ADDR_WIDTH-1:0]];
   assign retire_preg_1 = rob_preg[head_next[`ROB_ADDR_WIDTH-1:0]];
-  
+
+  // bru
+  wire head_bru = rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU || rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP;
+  wire head_next_bru = rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU || rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP;
+  assign retire_bru_valid = rob_complete[head[`ROB_ADDR_WIDTH-1:0]] & head_bru;
+  assign retire_bru_addr = rob_jump_addr[head[`ROB_ADDR_WIDTH-1:0]];
+  assign retire_bru_flag = rob_jump_flag[head[`ROB_ADDR_WIDTH-1:0]];
+
   reg [`PADDR_WIDTH-1:0] retire_pc_0 = 0;
   reg [`PADDR_WIDTH-1:0] retire_pc_1 = 0;
   reg [`WORD_WIDTH-1:0]  retire_inst_0 = 0;
@@ -188,7 +202,7 @@ module ROB (
   
   always @(*) begin
     retire_valid_0 = rob_complete[head[`ROB_ADDR_WIDTH-1:0]];
-    retire_valid_1 = rob_complete[head[`ROB_ADDR_WIDTH-1:0]] & rob_complete[head_next[`ROB_ADDR_WIDTH-1:0]];
+    retire_valid_1 = ~head_bru & ~head_next_bru & rob_complete[head[`ROB_ADDR_WIDTH-1:0]] & rob_complete[head_next[`ROB_ADDR_WIDTH-1:0]];
     retire_pc_0 = rob_pc[head[`ROB_ADDR_WIDTH-1:0]];
     retire_pc_1 = rob_pc[head_next[`ROB_ADDR_WIDTH-1:0]];
     retire_inst_0 = rob_inst[head[`ROB_ADDR_WIDTH-1:0]];

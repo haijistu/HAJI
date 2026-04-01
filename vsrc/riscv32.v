@@ -82,10 +82,15 @@ module riscv32(
   wire [`ISSUE_NUM*`WORD_WIDTH-1:0] icache_idata;
 
   // ifu: jump target
-  wire [`PADDR_WIDTH-1:0] jump_addr;
-  wire                    jump_flag;
   wire [`PADDR_WIDTH-1:0] exc_jump_addr;
   wire                    exc_jump_flag;
+
+  // ifu : idu-bru
+  wire                    idu_bru_valid;
+  // ifu : retire-bru
+  wire                          retire_bru_valid;
+  wire [`PADDR_WIDTH-1:0]       retire_bru_addr;
+  wire                          retire_bru_flag;
 
   // ifu - idu
   wire [`PADDR_WIDTH-1:0]     ifu_pc_0;
@@ -363,6 +368,13 @@ module riscv32(
     .clock(clock),
     .reset(reset),
 
+    // idu-bru
+    .idu_bru_valid(idu_bru_valid),
+    // retire-bru
+    .retire_bru_valid(retire_bru_valid),
+    .retire_bru_addr(retire_bru_addr),
+    .retire_bru_flag(retire_bru_flag),
+
     // IFU与icache的握手接口
     .icache_ivalid(icache_ivalid),
     .icache_idata(icache_idata),
@@ -380,8 +392,6 @@ module riscv32(
     .ifu_valid_1(ifu_valid_1),
 
     // Jump Target
-    .jump_addr(jump_addr),
-    .jump_flag(jump_flag),
     .exc_jump_addr(exc_jump_addr),
     .exc_jump_flag(exc_jump_flag)
   );
@@ -408,6 +418,9 @@ module riscv32(
   IDU_top IDU0(
     .clock(clock),
     .reset(reset),
+
+    // idu-bru
+    .idu_bru_valid(idu_bru_valid),
     // 来自ifu
     .ifu_valid_0(ifu_idu_valid_0),
     .ifu_pc_0(ifu_idu_pc_0),
@@ -824,7 +837,12 @@ module riscv32(
     .retire_wd_1(retire_wd_1),
 
     .idu_inst_0(issue_inst_0),
-    .idu_inst_1(issue_inst_1)
+    .idu_inst_1(issue_inst_1),
+
+    // retire-bru
+    .retire_bru_valid(retire_bru_valid),
+    .retire_bru_addr(retire_bru_addr),
+    .retire_bru_flag(retire_bru_flag)
   );
 
   RENAME_top RENAME0(

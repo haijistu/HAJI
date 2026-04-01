@@ -60,8 +60,8 @@ module ISSUE_scoreboard (
       end
     end
   end
-  assign src1_ready_0 = preg_ready[query_psrc1_0];
-  assign src1_ready_1 = preg_ready[query_psrc1_1];
-  assign src2_ready_0 = preg_ready[query_psrc2_0];
-  assign src2_ready_1 = preg_ready[query_psrc2_1];
+  assign src1_ready_0 = preg_ready_next[query_psrc1_0];
+  assign src1_ready_1 = preg_ready_next[query_psrc1_1];
+  assign src2_ready_0 = preg_ready_next[query_psrc2_0];
+  assign src2_ready_1 = preg_ready_next[query_psrc2_1];
 endmodule

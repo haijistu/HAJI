@@ -36,7 +36,7 @@ void exec_once() {
   while(npc_ifu_state == 0) tick();
   // 取指令
   bool retire_flag = false;
-  if(!retire_flag) {
+  while(!retire_flag) {
     tick();
     if(retire_valid_0 == 1) {
       retire_flag = true;

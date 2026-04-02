@@ -133,27 +133,39 @@ module ARBITER(
 );
 
 // 最简单的调度，缓存
-localparam C1 = 1'd0; // icache_master
-localparam C2 = 1'd1; // lsu_master
-reg master_state;
+localparam C0 = 2'd0; // idle
+localparam C1 = 2'd1; // icache_master
+localparam C2 = 2'd2; // lsu_master
+reg [1:0] master_state;
 wire icache_valid = icache_arvalid;
 wire lsu_valid = lsu_arvalid | lsu_awvalid | lsu_wvalid;
 
-reg [1:0] slave_state;
-localparam s_io = 2'b00, s_clint = 2'b10;
+reg slave_state;
+localparam s_io = 1'b0, s_clint = 1'b1;
 always @(posedge clock) begin
   if(reset) begin
-    master_state <= C1;
     slave_state <= s_io;
   end
-  else if(lsu_valid) begin
-    master_state <= C2;
+  else if(master_state == C0 && lsu_valid) begin
     if(lsu_arvalid && lsu_araddr >= `CLINT_ADDR_START && lsu_araddr <= `CLINT_ADDR_END) slave_state <= s_clint;
     else slave_state <= s_io;
   end
-  else if(icache_valid) begin
+  else if(master_state == C0 && icache_valid) begin
     slave_state <= s_io;
-    master_state <= C1;
+  end
+end
+
+always @(posedge clock) begin
+  if(reset) begin
+    master_state <= C0;
+  end
+  else begin
+    case(master_state)
+      C0: master_state <= lsu_valid ? C2 : icache_valid ? C1 : C0; // lsu > icache
+      C1: master_state <= icache_rvalid && icache_rlast ? C0 : C1;
+      C2: master_state <= ((lsu_rvalid && lsu_rlast)|| lsu_bvalid) ? C0 : C2;
+      default: master_state <= C0;
+    endcase
   end
 end
 

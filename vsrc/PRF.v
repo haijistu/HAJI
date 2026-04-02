@@ -36,7 +36,7 @@ module PRF (
     else begin
       // 写端口
       if(we_0 && wa_0 != 0) prf[wa_0] <= wd_0; 
-      if(we_0 && wa_0 != 0) prf[wa_0] <= wd_0; 
+      if(we_1 && wa_1 != 0) prf[wa_1] <= wd_1; 
     end
   end
   

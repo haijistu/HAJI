@@ -80,10 +80,10 @@ module ICACHE_top (
     end
   end
 
+  integer i;
   // 更新Cache
   always @(posedge clock) begin
     if(reset) begin
-      integer i;
       for(i = 0; i < block_num; i = i + 1) begin
         cache_valid[i] <= 1'b0;
         cache_tag[i] <= 0;

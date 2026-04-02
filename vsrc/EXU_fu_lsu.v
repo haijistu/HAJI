@@ -85,8 +85,8 @@ module FU_lsu (
   assign lsu_arid = 4'b0000;
   assign lsu_arburst = 2'b01;
 
-  assign lsu_rready = (state == C1);
-
+  assign lsu_rready = (state == C2);
+  assign lsu_load_valid = (state == C2) && lsu_rvalid && lsu_rlast && (lsu_rid == 4'b0000) && (lsu_rresp == 2'b00);
   assign lsu_wd = lw_inst ? lsu_rdata :
               (lbu_inst && lsu_addr[1:0] == 2'b11) ? {24'd0, lsu_rdata[31:24]} :
               (lbu_inst && lsu_addr[1:0] == 2'b10) ? {24'd0, lsu_rdata[23:16]} :

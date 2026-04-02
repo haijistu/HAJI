@@ -5,7 +5,6 @@
 #include <sys/time.h>
 #include "VysyxSoCFull.h"
 #include "VysyxSoCFull___024root.h"
-#include "verilated.h"
 
 #ifdef CONFIG_BOARD
 #include <nvboard.h>

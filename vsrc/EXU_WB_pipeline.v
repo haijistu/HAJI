@@ -55,20 +55,20 @@ always @(posedge clock) begin
     else wb_alu_valid <= 0;
 
     if(lsu_valid) begin
-      wb_lsu_valid <= 1;
+      wb_lsu_valid <= 1'b1;
       wb_lsu_wd <= lsu_wd;
       wb_lsu_rob_idx <= lsu_rob_idx;
     end
     else wb_lsu_valid <= 0;
 
     if(bru_valid) begin
-      wb_bru_valid <= 1;
+      wb_bru_valid <= 1'b1;
       wb_bru_jump_addr <= bru_jump_addr;
       wb_bru_jump_flag <= bru_jump_flag;
       wb_bru_wd <= bru_wd;
       wb_bru_rob_idx <= bru_rob_idx;
     end
-    else wb_lsu_valid <= 0;
+    else wb_bru_valid <= 0;
   end
 end
   

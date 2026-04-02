@@ -63,7 +63,10 @@ module ROB (
   // 只会退休一条分支指令，不会退休后面满足条件的指令
   output                          retire_bru_valid,
   output [`PADDR_WIDTH-1:0]       retire_bru_addr,
-  output                          retire_bru_flag
+  output                          retire_bru_flag,
+
+  output                          retire_store_finish,
+  output [`ROB_ADDR_WIDTH-1:0]    retire_store_rob_idx
 
 );
 
@@ -188,12 +191,22 @@ module ROB (
   assign retire_preg_0 = rob_preg[head[`ROB_ADDR_WIDTH-1:0]];
   assign retire_preg_1 = rob_preg[head_next[`ROB_ADDR_WIDTH-1:0]];
 
+  // retire - complete
+  wire head_complete = rob_complete[head[`ROB_ADDR_WIDTH-1:0]];
+  wire head_next_complete = rob_complete[head[`ROB_ADDR_WIDTH-1:0]] & rob_complete[head_next[`ROB_ADDR_WIDTH-1:0]];
   // bru
-  wire head_bru = rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU || rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP;
-  wire head_next_bru = rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU || rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP;
+  wire head_bru = (rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU) || (rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP);
+  wire head_next_bru = (rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU)|| (rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP);
   assign retire_bru_valid = rob_complete[head[`ROB_ADDR_WIDTH-1:0]] & head_bru;
   assign retire_bru_addr = rob_jump_addr[head[`ROB_ADDR_WIDTH-1:0]];
   assign retire_bru_flag = rob_jump_flag[head[`ROB_ADDR_WIDTH-1:0]];
+
+  // store
+  wire head_store = (rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_STORE);
+  wire head_next_store = (rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_STORE);
+  wire head_store_hit = head[`ROB_ADDR_WIDTH-1:0] == retire_store_rob_idx;
+  wire head_next_store_hit = head_next[`ROB_ADDR_WIDTH-1:0] == retire_store_rob_idx;
+
 
   reg [`PADDR_WIDTH-1:0] retire_pc_0 = 0;
   reg [`PADDR_WIDTH-1:0] retire_pc_1 = 0;
@@ -201,8 +214,8 @@ module ROB (
   reg [`WORD_WIDTH-1:0]  retire_inst_1 = 0;
   
   always @(*) begin
-    retire_valid_0 = rob_complete[head[`ROB_ADDR_WIDTH-1:0]];
-    retire_valid_1 = ~head_bru & ~head_next_bru & rob_complete[head[`ROB_ADDR_WIDTH-1:0]] & rob_complete[head_next[`ROB_ADDR_WIDTH-1:0]];
+    retire_valid_0 = head_store ? (head_complete & retire_store_finish & head_store_hit) : head_complete;
+    retire_valid_1 = head_next_store ? (head_next_complete & retire_store_finish & head_next_store_hit) : ~head_bru & ~head_next_bru & head_next_complete & retire_valid_0;
     retire_pc_0 = rob_pc[head[`ROB_ADDR_WIDTH-1:0]];
     retire_pc_1 = rob_pc[head_next[`ROB_ADDR_WIDTH-1:0]];
     retire_inst_0 = rob_inst[head[`ROB_ADDR_WIDTH-1:0]];

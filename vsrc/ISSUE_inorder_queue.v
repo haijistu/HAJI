@@ -153,10 +153,11 @@ module ISSUE_inorder_queue (
       queue_src1_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_valid_0 ? dispatch_prs1_ready_0 : 1'b1;
       queue_src2_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_valid_0 ? dispatch_prs2_ready_0 : 1'b1;
     end
-    else begin
+    else if(dispatch_valid_1) begin
       queue_src1_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs1_valid_1 ? dispatch_prs1_ready_1 : 1'b1;
       queue_src2_ready_next[tail[`QUEUE_ADDR_WIDTH-1:0]] = dispatch_prs2_valid_1 ? dispatch_prs2_ready_1 : 1'b1;
     end
+    
     if(retire_valid_0) begin
       for (i = 0; i < `QUEUE_SIZE; i = i + 1) begin
         if (queue_free[i]) begin

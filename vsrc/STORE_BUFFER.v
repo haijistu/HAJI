@@ -30,7 +30,10 @@ module STORE_BUFFER (
   input                       store_bvalid,
   output                      store_bready,
   input  [1:0]                store_bresp,
-  input  [3:0]                store_bid
+  input  [3:0]                store_bid,
+
+  output                        retire_store_finish,
+  output [`ROB_ADDR_WIDTH-1:0]  retire_store_rob_idx
 );
   
   reg [`ROB_ADDR_WIDTH-1:0] todo_list[0:15];
@@ -45,6 +48,7 @@ module STORE_BUFFER (
   always @(posedge clock) begin
     if(~reset) begin
       if(store_valid && free[store_rob_idx] == 1'b0) begin
+        free[store_rob_idx] <= 1'b1;
         addr[store_rob_idx] <= store_addr;
         data[store_rob_idx] <= store_data;
         op[store_rob_idx] <= store_op;
@@ -93,6 +97,9 @@ module STORE_BUFFER (
   end
   
   wire [`ROB_ADDR_WIDTH-1:0] head_rob_idx = todo_list[head[3:0]];
+
+  assign retire_store_finish = (state == S3) && store_bvalid && (store_bid == 4'b0000) && (store_bresp == 2'b00);
+  assign retire_store_rob_idx = head_rob_idx;
 
   wire sb_inst = op[head_rob_idx][0];
   wire sh_inst = op[head_rob_idx][1];

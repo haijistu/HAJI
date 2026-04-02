@@ -38,8 +38,8 @@
 `define FU_TYPE_WIDTH   5
 `define REG_ADDR_WIDTH  5
 `define REG_NUM         32
-`define PREG_ADDR_WIDTH 7
-`define PREG_NUM        128
+`define PREG_ADDR_WIDTH 6
+`define PREG_NUM        64
 `define CSR_ADDR_WIDTH  12
 `define EXC_EVENT_WIDTH 2
 

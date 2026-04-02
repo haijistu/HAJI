@@ -307,6 +307,8 @@ module riscv32(
   wire                        retire_valid_1;
   wire                        retire_store_valid_0;
   wire                        retire_store_valid_1;
+  wire [`ROB_ADDR_WIDTH-1:0]  retire_store_rob_idx;
+  wire                        retire_store_finish;
   wire                        retire_rd_valid_0;
   wire                        retire_rd_valid_1;
   wire [`PREG_ADDR_WIDTH-1:0] retire_opreg_0;
@@ -758,7 +760,7 @@ module riscv32(
     .alu_valid(alu_wb_valid),
     .alu_wd(alu_wb_wd),
     .alu_rob_idx(alu_wb_rob_idx),
-    .lsu_valid(lsu_wb_load_valid && lsu_wb_store_valid),
+    .lsu_valid(lsu_wb_load_valid || lsu_wb_store_valid),
     .lsu_wd(lsu_wb_wd),
     .lsu_rob_idx(lsu_wb_rob_idx),
     .bru_valid(bru_wb_valid),
@@ -842,7 +844,11 @@ module riscv32(
     // retire-bru
     .retire_bru_valid(retire_bru_valid),
     .retire_bru_addr(retire_bru_addr),
-    .retire_bru_flag(retire_bru_flag)
+    .retire_bru_flag(retire_bru_flag),
+
+    // retire-store
+    .retire_store_finish(retire_store_finish),
+    .retire_store_rob_idx(retire_store_rob_idx)
   );
 
   RENAME_top RENAME0(
@@ -896,7 +902,10 @@ module riscv32(
     .retire_rob_idx_0(retire_rob_idx_0),
     .retire_valid_1(retire_store_valid_1),
     .retire_rob_idx_1(retire_rob_idx_1),
-    
+
+    .retire_store_finish(retire_store_finish),
+    .retire_store_rob_idx(retire_store_rob_idx),
+
     .store_awvalid(lsu_awvalid),
     .store_awready(lsu_awready),
     .store_awaddr(lsu_awaddr),

@@ -91,6 +91,7 @@ module riscv32(
   wire                          retire_bru_valid;
   wire [`PADDR_WIDTH-1:0]       retire_bru_addr;
   wire                          retire_bru_flag;
+  wire [`PADDR_WIDTH-1:0]       retire_bru_pc;
 
   // ifu - idu
   wire [`PADDR_WIDTH-1:0]     ifu_pc_0;
@@ -376,6 +377,7 @@ module riscv32(
     .retire_bru_valid(retire_bru_valid),
     .retire_bru_addr(retire_bru_addr),
     .retire_bru_flag(retire_bru_flag),
+    .retire_bru_pc(retire_bru_pc),
 
     // IFU与icache的握手接口
     .icache_ivalid(icache_ivalid),
@@ -845,6 +847,7 @@ module riscv32(
     .retire_bru_valid(retire_bru_valid),
     .retire_bru_addr(retire_bru_addr),
     .retire_bru_flag(retire_bru_flag),
+    .retire_bru_pc(retire_bru_pc),
 
     // retire-store
     .retire_store_finish(retire_store_finish),

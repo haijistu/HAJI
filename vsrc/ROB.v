@@ -64,6 +64,7 @@ module ROB (
   output                          retire_bru_valid,
   output [`PADDR_WIDTH-1:0]       retire_bru_addr,
   output                          retire_bru_flag,
+  output [`PADDR_WIDTH-1:0]       retire_bru_pc,
 
   output                          retire_store_finish,
   output [`ROB_ADDR_WIDTH-1:0]    retire_store_rob_idx
@@ -200,6 +201,7 @@ module ROB (
   assign retire_bru_valid = rob_complete[head[`ROB_ADDR_WIDTH-1:0]] & head_bru;
   assign retire_bru_addr = rob_jump_addr[head[`ROB_ADDR_WIDTH-1:0]];
   assign retire_bru_flag = rob_jump_flag[head[`ROB_ADDR_WIDTH-1:0]];
+  assign retire_bru_pc = rob_pc[head[`ROB_ADDR_WIDTH-1:0]];
 
   // store
   wire head_store = (rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_STORE);

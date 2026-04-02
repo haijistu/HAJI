@@ -123,7 +123,7 @@ module ISSUE_top (
     .prs2_valid_1(idu_prs2_valid_1),
     .prd_1(idu_prd_1),
     .prd_valid_1(idu_prd_valid_1),
-    .inst1_valid(idu_valid_0),
+    .inst1_valid(idu_valid_1),
     .op_1(idu_op_1),
     .fu_type_1(idu_fu_type_1),
     .imm_1(idu_imm_1),

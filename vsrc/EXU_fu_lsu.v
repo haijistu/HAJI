@@ -58,7 +58,7 @@ module FU_lsu (
   wire sh_inst  =  lsu_issue_op[3] & ~lsu_issue_op[2] & ~lsu_issue_op[1] &  lsu_issue_op[0];
 
   wire load_inst = lw_inst | lbu_inst | lb_inst | lh_inst | lhu_inst;
-  assign lsu_store_valid = sb_inst | sw_inst | sh_inst;
+  assign lsu_store_valid = lsu_issue_valid & (sb_inst | sw_inst | sh_inst);
   assign lsu_store_op = {sw_inst, sh_inst, sb_inst};
   assign lsu_store_data = sw_inst ? lsu_psrc2 : sb_inst ? {4{lsu_psrc2[7:0]}} : sh_inst ? {2{lsu_psrc2[15:0]}} : 0;
   assign lsu_store_addr = lsu_addr;

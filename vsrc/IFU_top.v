@@ -17,6 +17,7 @@ module IFU_top (
   input                               retire_bru_valid,
   input [`PADDR_WIDTH-1:0]            retire_bru_addr,
   input                               retire_bru_flag,
+  input [`PADDR_WIDTH-1:0]            retire_bru_pc,
 
   // 传输至idu的数据
   output reg [`PADDR_WIDTH-1:0] ifu_inst0,
@@ -33,7 +34,7 @@ module IFU_top (
 // 每次取指获取两条指令，支持单发和双发模式
   // 上电初始化
   reg [`PADDR_WIDTH-1:0] pc = `INIT_PC;
-  wire [`PADDR_WIDTH-1:0] next_pc = exc_jump_flag ? exc_jump_addr : retire_bru_valid ? (retire_bru_flag ? retire_bru_addr : pc) : pc + 32'd8;
+  wire [`PADDR_WIDTH-1:0] next_pc = exc_jump_flag ? exc_jump_addr : retire_bru_valid ? (retire_bru_flag ? retire_bru_addr : retire_bru_pc + 32'd4) : pc + 32'd8;
   
   // C1: 发送取指请求
   // C2: 等待指令返回

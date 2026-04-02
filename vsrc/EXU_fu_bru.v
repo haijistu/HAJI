@@ -53,4 +53,6 @@ module FU_bru (
   // 跳转标志
   assign jump_flag = branch_taken;
 
+  assign bru_wd = (bru_issue_op == `JUMP_JAL || bru_issue_op == `JUMP_JALR) ? bru_issue_pc + 32'd4 : 32'd0;
+
 endmodule

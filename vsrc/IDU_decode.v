@@ -62,6 +62,9 @@ module IDU_decode (
   wire bltu_inst=  funct3[2]& funct3[1]&~funct3[0] & opcode[6]& opcode[5]&~opcode[4]&~opcode[3]&~opcode[2] & opcode[1]& opcode[0];
   wire bgeu_inst=  funct3[2]& funct3[1]& funct3[0] & opcode[6]& opcode[5]&~opcode[4]&~opcode[3]&~opcode[2] & opcode[1]& opcode[0];
 
+  // ebreak
+  wire ebreak_inst = (inst == 32'h00100073);
+
   // 指令类型
   wire instR = add_inst | sub_inst | and_inst | or_inst | xor_inst | slt_inst | sltu_inst | sll_inst | sra_inst | srl_inst;
   wire instI = addi_inst | jalr_inst | lw_inst | lbu_inst | sltiu_inst | lb_inst | lh_inst | lhu_inst | srai_inst | slli_inst | srli_inst | andi_inst | ori_inst | xori_inst | slti_inst;
@@ -83,7 +86,7 @@ module IDU_decode (
   assign op[0] = auipc_inst | lui_inst | srai_inst | srli_inst | slli_inst | sra_inst | srl_inst | sll_inst | andi_inst | and_inst | lh_inst | lhu_inst | sh_inst | bne_inst | bge_inst | bgeu_inst | jalr_inst;
 
   // 功能单元类型(riscv32e)
-  assign fu_type[0] = add_inst | sub_inst | and_inst | or_inst | xor_inst | slt_inst | sltu_inst | sll_inst | sra_inst | srl_inst | addi_inst | slti_inst | sltiu_inst | slli_inst | srai_inst | srli_inst | andi_inst | ori_inst | xori_inst | auipc_inst | lui_inst;
+  assign fu_type[0] = add_inst | sub_inst | and_inst | or_inst | xor_inst | slt_inst | sltu_inst | sll_inst | sra_inst | srl_inst | addi_inst | slti_inst | sltiu_inst | slli_inst | srai_inst | srli_inst | andi_inst | ori_inst | xori_inst | auipc_inst | lui_inst | ebreak_inst;
   assign fu_type[1] = lw_inst | lbu_inst | lb_inst | lhu_inst | lh_inst;
   assign fu_type[2] = sw_inst | sb_inst | sh_inst;
   assign fu_type[3] = beq_inst | bne_inst | blt_inst | bge_inst | bltu_inst | bgeu_inst;

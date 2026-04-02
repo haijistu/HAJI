@@ -87,10 +87,11 @@ module ROB (
   wire [`ROB_ADDR_WIDTH:0]    tail_next = tail + 1;
   wire [`ROB_ADDR_WIDTH:0]    head_next = head + 1;
   // Dispatch 阶段：将 RENAME 的指令信息写入 ROB
+  integer i;
   always @(posedge clock) begin
     if (reset) begin
       tail <= 0;
-      for (integer i = 0; i < `ROB_SIZE; i++) begin
+      for (i = 0; i < `ROB_SIZE; i++) begin
         rob_complete[i] <= 0;
       end
     end else begin
@@ -158,6 +159,12 @@ module ROB (
         rob_jump_addr[wb_rob_idx_2] <= wb_rob_jump_addr;
         rob_jump_flag[wb_rob_idx_2] <= wb_rob_jump_flag;
       end
+      if(retire_valid_0) begin
+        rob_complete[head[`ROB_ADDR_WIDTH-1:0]] <= 1'b0;
+      end
+      if(retire_valid_1) begin
+        rob_complete[head_next[`ROB_ADDR_WIDTH-1:0]] <= 1'b0;
+      end
     end
   end
 
@@ -208,7 +215,6 @@ module ROB (
   wire head_next_store = (rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_STORE);
   wire head_store_hit = head[`ROB_ADDR_WIDTH-1:0] == retire_store_rob_idx;
   wire head_next_store_hit = head_next[`ROB_ADDR_WIDTH-1:0] == retire_store_rob_idx;
-
 
   reg [`PADDR_WIDTH-1:0] retire_pc_0 = 0;
   reg [`PADDR_WIDTH-1:0] retire_pc_1 = 0;

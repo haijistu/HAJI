@@ -65,7 +65,7 @@ module RENAME_top (
     .push0(rob_retire_opreg_0),
     .push0_valid(rob_retire_valid_0 && rob_retire_opreg_0 != 0),
     .push1(rob_retire_opreg_1),
-    .push1_valid(rob_retire_valid_1 && rob_retire_opreg_0 != 0),
+    .push1_valid(rob_retire_valid_1 && rob_retire_opreg_1 != 0),
     .pop0(nprd_0),
     .pop1(nprd_1),
     .empty()

@@ -110,7 +110,7 @@ module ICACHE_top (
         3'd2: begin
           if(icache_rvalid && icache_rlast) begin
             // 跨块：进入C3读第二个块；不跨块：回到C0
-            state <= cross_line ? 3'd3 : 3'd0;
+            state <= cross_line & ~hit1 ? 3'd3 : 3'd0;
             axi_addr <= line_addr1;
           end
         end

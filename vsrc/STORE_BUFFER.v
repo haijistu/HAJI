@@ -45,6 +45,9 @@ module STORE_BUFFER (
   reg [`WORD_WIDTH-1:0]     data[0:`ROB_SIZE-1];
   reg                       free[0:`ROB_SIZE-1];
   reg [2:0]                 op[0:`ROB_SIZE-1];
+
+  wire [`ROB_ADDR_WIDTH-1:0] head_rob_idx = todo_list[head[3:0]];
+
   always @(posedge clock) begin
     if(~reset) begin
       if(store_valid && free[store_rob_idx] == 1'b0) begin
@@ -62,7 +65,7 @@ module STORE_BUFFER (
     if(reset) state <= S0;
     else begin
       case(state)
-        S0: state <= (!empty)? S1 : S0;
+        S0: state <= (!empty) || (retire_valid_0 || retire_valid_1) ? S1 : S0;
         S1: state <= store_awready ? S2 : S1;
         S2: state <= store_wready ? S3 : S2;
         S3: state <= store_bvalid && (store_bid == 4'b0000) && (store_bresp == 2'b00) ? S0 : S3;
@@ -76,27 +79,27 @@ module STORE_BUFFER (
       tail <= 0;
     end
     else begin
-      if(retire_valid_0 && retire_valid_1) begin
+      if(state == S0 && retire_valid_0 && retire_valid_1) begin
         todo_list[tail[3:0]] <= retire_rob_idx_0;
         todo_list[tail_next[3:0]] <= retire_rob_idx_1;
         tail <= tail + 2;
       end
-      else if(retire_valid_0) begin
+      else if(state == S0 && retire_valid_0) begin
         todo_list[tail[3:0]] <= retire_rob_idx_0;
         tail <= tail + 1;
       end
-      else if(retire_valid_1) begin
+      else if(state == S0 && retire_valid_1) begin
         todo_list[tail[3:0]] <= retire_rob_idx_1;
         tail <= tail + 1;
       end
 
       if((state == S3) && store_bvalid && (store_bid == 4'b0000) && (store_bresp == 2'b00)) begin
         head <= head + 1;
+        free[head_rob_idx] <= 1'b0;
       end
     end
   end
   
-  wire [`ROB_ADDR_WIDTH-1:0] head_rob_idx = todo_list[head[3:0]];
 
   assign retire_store_finish = (state == S3) && store_bvalid && (store_bid == 4'b0000) && (store_bresp == 2'b00);
   assign retire_store_rob_idx = head_rob_idx;
@@ -105,7 +108,7 @@ module STORE_BUFFER (
   wire sh_inst = op[head_rob_idx][1];
   wire sw_inst = op[head_rob_idx][2];
 
-  assign store_awvalid = (state == S1);
+  assign store_awvalid = (state == S1) || (state == S0 && !empty);
   assign store_awaddr = addr[head_rob_idx];
   assign store_awlen = 8'd0;
   assign store_awsize[0] = sh_inst;

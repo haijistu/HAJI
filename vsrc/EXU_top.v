@@ -67,7 +67,10 @@ module EXU_top (
   output [`PADDR_WIDTH-1:0]         bru_jump_addr,
   output                            bru_jump_flag,
   output [`ROB_ADDR_WIDTH-1:0]      bru_rob_idx,
-  output [`WORD_WIDTH-1:0]          bru_wd
+  output [`WORD_WIDTH-1:0]          bru_wd,
+
+  // lsu - busy
+  output                            lsu_busy
 
 );
   FU_alu alu(
@@ -112,7 +115,9 @@ module EXU_top (
     .lsu_wd(lsu_wd),
     .lsu_store_addr(lsu_store_addr),
     .lsu_store_data(lsu_store_data),
-    .lsu_store_op(lsu_store_op)
+    .lsu_store_op(lsu_store_op),
+    
+    .lsu_busy(lsu_busy)
   );
 
   FU_bru bru(

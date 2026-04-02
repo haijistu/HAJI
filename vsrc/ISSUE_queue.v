@@ -54,6 +54,7 @@ module ISSUE_queue (
   output [`PREG_ADDR_WIDTH-1:0] alu_issue_prd,
   output [`ROB_ADDR_WIDTH-1:0]  alu_issue_rob_idx,
 
+  input                         lsu_busy,
   output                        lsu_issue_valid,
   output [`OP_WIDTH-1:0]        lsu_issue_op,
   output [`WORD_WIDTH-1:0]      lsu_issue_imm,
@@ -134,7 +135,7 @@ module ISSUE_queue (
     .retire_prd_1(retire_prd_1)
   );
 
-  ISSUE_inorder_queue lsu_queue(
+  ISSUE_lsu_queue lsu_queue(
     .clock(clock),
     .reset(reset),
     // dispatch
@@ -167,6 +168,7 @@ module ISSUE_queue (
     .dispatch_prs1_ready_1(prs1_ready_1),
     .dispatch_prs2_ready_1(prs2_ready_1),
 
+    .lsu_busy(lsu_busy),
     .issue_valid(lsu_issue_valid),
     .issue_op(lsu_issue_op),
     .issue_imm(lsu_issue_imm),

@@ -281,6 +281,7 @@ module riscv32(
   wire [`WORD_WIDTH-1:0]      lsu_store_data;
   wire [2:0]                  lsu_store_op;
   wire [`ROB_ADDR_WIDTH-1:0]  lsu_wb_rob_idx;
+  wire                        lsu_busy;
   
   wire                        bru_wb_valid;
   wire [`PADDR_WIDTH-1:0]     bru_wb_jump_addr;
@@ -599,6 +600,8 @@ module riscv32(
     .alu_issue_prd(alu_issue_prd),
     .alu_issue_rob_idx(alu_issue_rob_idx),
 
+    .lsu_busy(lsu_busy),
+
     .lsu_issue_valid(lsu_issue_valid),
     .lsu_issue_op(lsu_issue_op),
     .lsu_issue_imm(lsu_issue_imm),
@@ -747,6 +750,8 @@ module riscv32(
     .lsu_store_data(lsu_store_data),
     .lsu_store_op(lsu_store_op),
     .lsu_rob_idx(lsu_wb_rob_idx),
+
+    .lsu_busy(lsu_busy),
 
     .bru_valid(bru_wb_valid),
     .bru_jump_addr(bru_wb_jump_addr),

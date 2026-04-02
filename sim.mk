@@ -6,7 +6,8 @@ VERILATOR_CFLAGS += --build -cc -O3 -j 0  \
 										-Ivsrc/ -I$(SOC_HOME)/perip/uart16550/rtl -I$(SOC_HOME)/perip/spi/rtl \
 										--trace-fst
 
-IMG = $(abspath ./tests/dummy/dummy-riscv32e-ysyxsoc.bin)
+# IMG = $(abspath ./tests/dummy-riscv32e-ysyxsoc.bin)
+IMG = $(abspath ./tests/add-longlong-riscv32e-ysyxsoc.bin)
 
 CPPFLAGS = -I$(abspath ./cppsrc/include) -I$(NEMU_HOME)/tools/capstone/repo/include -DCONFIG_WAVEFORM
 LDFLAGS = -lreadline -ldl

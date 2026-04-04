@@ -45,7 +45,9 @@ module ISSUE_top (
   output wire [`PREG_ADDR_WIDTH-1:0] alu_issue_prd,
   output wire [`ROB_ADDR_WIDTH-1:0]  alu_issue_rob_idx,
 
-  input wire                         lsu_busy,
+  input wire                         load_busy,
+  input wire                         store_busy,
+  
   output reg                         lsu_issue_valid,
   output wire [`OP_WIDTH-1:0]        lsu_issue_op,
   output wire [`WORD_WIDTH-1:0]      lsu_issue_imm,
@@ -155,7 +157,9 @@ module ISSUE_top (
     .alu_issue_prd(alu_issue_prd),
     .alu_issue_rob_idx(alu_issue_rob_idx),
 
-    .lsu_busy(lsu_busy),
+    .load_busy(load_busy),
+    .store_busy(store_busy),
+
     .lsu_issue_valid(lsu_issue_valid),
     .lsu_issue_op(lsu_issue_op),
     .lsu_issue_imm_valid(lsu_issue_imm_valid),  

@@ -281,7 +281,8 @@ module riscv32(
   wire [`WORD_WIDTH-1:0]      lsu_store_data;
   wire [2:0]                  lsu_store_op;
   wire [`ROB_ADDR_WIDTH-1:0]  lsu_wb_rob_idx;
-  wire                        lsu_busy;
+  wire                        load_busy;
+  wire                        store_busy;
   
   wire                        bru_wb_valid;
   wire [`PADDR_WIDTH-1:0]     bru_wb_jump_addr;
@@ -325,6 +326,10 @@ module riscv32(
   wire [`WORD_WIDTH-1:0]      retire_wd_0;
   wire [`PREG_ADDR_WIDTH-1:0] retire_wa_1;
   wire [`WORD_WIDTH-1:0]      retire_wd_1;
+
+  // stall
+  wire                          rob_full;
+  wire [`STALL_ADDR_WIDTH-1:0]  stall;
 
   ICACHE_top ICACHE0(
     .clock(clock),
@@ -371,6 +376,7 @@ module riscv32(
   IFU_top IFU0(
     .clock(clock),
     .reset(reset),
+    .stall(stall[0]),
 
     // idu-bru
     .idu_bru_valid(idu_bru_valid),
@@ -404,6 +410,7 @@ module riscv32(
   IFU_IDU_pipeline IFU_IDU_pipeline0(
     .clock(clock),
     .reset(reset),
+    .stall(stall[1]),
 
     .ifu_inst_0(ifu_inst_0),
     .ifu_pc_0(ifu_pc_0),
@@ -486,6 +493,7 @@ module riscv32(
   IDU_ISSUE_pipeline IDU_ISSUE_pipeline0(
     .clock(clock),
     .reset(reset),
+    .stall(stall[2]),
 
     // idu
     .idu_inst_0(idu_inst_0),
@@ -600,7 +608,8 @@ module riscv32(
     .alu_issue_prd(alu_issue_prd),
     .alu_issue_rob_idx(alu_issue_rob_idx),
 
-    .lsu_busy(lsu_busy),
+    .load_busy(load_busy),
+    .store_busy(store_busy),
 
     .lsu_issue_valid(lsu_issue_valid),
     .lsu_issue_op(lsu_issue_op),
@@ -623,9 +632,9 @@ module riscv32(
     .bru_issue_rob_idx(bru_issue_rob_idx),
 
     // retire
-    .retire_valid_0(retire_valid_0),
+    .retire_valid_0(retire_rd_valid_0 & retire_valid_0),
     .retire_prd_0(retire_preg_0),
-    .retire_valid_1(retire_valid_1),
+    .retire_valid_1(retire_rd_valid_1 & retire_valid_1),
     .retire_prd_1(retire_preg_1)
   );
 
@@ -751,7 +760,8 @@ module riscv32(
     .lsu_store_op(lsu_store_op),
     .lsu_rob_idx(lsu_wb_rob_idx),
 
-    .lsu_busy(lsu_busy),
+    .load_busy(load_busy),
+    .store_busy(store_busy),
 
     .bru_valid(bru_wb_valid),
     .bru_jump_addr(bru_wb_jump_addr),
@@ -856,7 +866,9 @@ module riscv32(
 
     // retire-store
     .retire_store_finish(retire_store_finish),
-    .retire_store_rob_idx(retire_store_rob_idx)
+    .retire_store_rob_idx(retire_store_rob_idx),
+
+    .rob_full(rob_full)
   );
 
   RENAME_top RENAME0(
@@ -905,6 +917,8 @@ module riscv32(
     .store_op(lsu_store_op),
     .store_rob_idx(lsu_wb_rob_idx),
 
+    .load_busy(load_busy),
+    .store_busy(store_busy),
     // retire
     .retire_valid_0(retire_store_valid_0),
     .retire_rob_idx_0(retire_rob_idx_0),
@@ -958,4 +972,8 @@ module riscv32(
     .wd_1(retire_wd_1)
   );
 
+  STALL STALL0(
+    .rob_full(rob_full),
+    .stall(stall)
+  );
 endmodule 

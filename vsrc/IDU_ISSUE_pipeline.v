@@ -2,6 +2,7 @@
 module IDU_ISSUE_pipeline (
   input clock,
   input reset,
+  input stall,
 
   input [`WORD_WIDTH-1:0]      idu_inst_0,
   input                        idu_valid_0,
@@ -102,7 +103,7 @@ always @(posedge clock) begin
     issue_fu_type_1 <= 0;
     issue_pc_1 <= 0;
   end
-  else begin
+  else if(!stall) begin
     if(idu_valid_0) begin
       issue_inst_0 <= idu_inst_0;
       issue_valid_0 <= 1;

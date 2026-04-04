@@ -33,7 +33,8 @@ module ISSUE_lsu_queue (
   input                         dispatch_prs1_ready_1,
   input                         dispatch_prs2_ready_1,
 
-  input                         lsu_busy,
+  input                         load_busy,
+  input                         store_busy,
   // issue
   output                        issue_valid,
   output [`OP_WIDTH-1:0]        issue_op,
@@ -49,7 +50,10 @@ module ISSUE_lsu_queue (
   input                             retire_valid_0,
   input [`PREG_ADDR_WIDTH-1:0]      retire_prd_0,
   input                             retire_valid_1,
-  input [`PREG_ADDR_WIDTH-1:0]      retire_prd_1
+  input [`PREG_ADDR_WIDTH-1:0]      retire_prd_1,
+
+  // stall
+  output                            queue_full
 );
   reg                         queue_free [0:`QUEUE_SIZE-1]; // 0为空闲 1为非空闲
   reg [`OP_WIDTH-1:0]         queue_op [0:`QUEUE_SIZE-1];
@@ -192,7 +196,7 @@ module ISSUE_lsu_queue (
     end
   end
   
-  assign issue_valid = !lsu_busy & head_valid && head_ready;
+  assign issue_valid = !store_busy & !load_busy & head_valid && head_ready;
   assign issue_imm = queue_imm[head[`QUEUE_ADDR_WIDTH-1:0]];
   assign issue_imm_valid = queue_imm_valid[head[`QUEUE_ADDR_WIDTH-1:0]];
   assign issue_op = queue_op[head[`QUEUE_ADDR_WIDTH-1:0]];
@@ -201,4 +205,6 @@ module ISSUE_lsu_queue (
   assign issue_rob_idx = queue_rob_idx[head[`QUEUE_ADDR_WIDTH-1:0]];
   assign issue_prs1 = queue_prs1[head[`QUEUE_ADDR_WIDTH-1:0]];
   assign issue_prs2 = queue_prs2[head[`QUEUE_ADDR_WIDTH-1:0]];
+  
+  assign queue_full = (tail[`ROB_ADDR_WIDTH-1:0] == head[`ROB_ADDR_WIDTH-1:0]) && (tail[`ROB_ADDR_WIDTH] ^ head[`ROB_ADDR_WIDTH]);
 endmodule

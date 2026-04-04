@@ -82,3 +82,6 @@
 
 `define ROB_SIZE 16
 `define ROB_ADDR_WIDTH 4
+
+// stall
+`define STALL_ADDR_WIDTH      5

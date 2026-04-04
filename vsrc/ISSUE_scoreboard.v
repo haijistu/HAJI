@@ -31,19 +31,19 @@ module ISSUE_scoreboard (
     for (i = 0; i < `PREG_NUM; i = i + 1)
       preg_ready_next[i] = preg_ready[i];
 
-    // rename → 置0
-    if (idu_alloc_valid_0 && idu_prd_0 != 0)
-      preg_ready_next[idu_prd_0] = 1'b0;
-
-    if (idu_alloc_valid_1 && idu_prd_1 != 0)
-      preg_ready_next[idu_prd_1] = 1'b0;
-
     // wb → 置1（覆盖）
     if (retire_valid_0 && retire_prd_0 != 0)
       preg_ready_next[retire_prd_0] = 1'b1;
 
     if (retire_valid_1 && retire_prd_1 != 0)
       preg_ready_next[retire_prd_1] = 1'b1;
+
+    // rename → 置0
+    if (idu_alloc_valid_0 && idu_prd_0 != 0)
+      preg_ready_next[idu_prd_0] = 1'b0;
+
+    if (idu_alloc_valid_1 && idu_prd_1 != 0)
+      preg_ready_next[idu_prd_1] = 1'b0;
     
     preg_ready_next[0] = 1'b1; // 0号物理寄存器始终保持ready
   end

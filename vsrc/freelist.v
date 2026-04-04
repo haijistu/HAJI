@@ -23,6 +23,7 @@ module freelist #(
   reg [DATA_WIDTH:0] tail; // 写指针
   wire [DATA_WIDTH:0] head_next = head + 1;
   integer i;
+  assign empty = (head == tail);
   always @(posedge clock or posedge reset) begin
     if (reset) begin
       head <= 0;

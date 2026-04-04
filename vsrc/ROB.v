@@ -67,7 +67,10 @@ module ROB (
   output [`PADDR_WIDTH-1:0]       retire_bru_pc,
 
   output                          retire_store_finish,
-  output [`ROB_ADDR_WIDTH-1:0]    retire_store_rob_idx
+  output [`ROB_ADDR_WIDTH-1:0]    retire_store_rob_idx,
+
+  // stall
+  output                          rob_full
 
 );
 
@@ -229,4 +232,6 @@ module ROB (
     retire_inst_0 = rob_inst[head[`ROB_ADDR_WIDTH-1:0]];
     retire_inst_1 = rob_inst[head_next[`ROB_ADDR_WIDTH-1:0]];
   end
+  
+  assign rob_full = ((tail[`ROB_ADDR_WIDTH-1:0] == head[`ROB_ADDR_WIDTH-1:0]) && (tail[`ROB_ADDR_WIDTH] ^ head[`ROB_ADDR_WIDTH])) || ((tail_next[`ROB_ADDR_WIDTH-1:0] == head[`ROB_ADDR_WIDTH-1:0]) && (tail_next[`ROB_ADDR_WIDTH] ^ head[`ROB_ADDR_WIDTH]));
 endmodule

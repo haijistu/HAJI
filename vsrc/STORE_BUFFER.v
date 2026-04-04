@@ -33,12 +33,15 @@ module STORE_BUFFER (
   input  [3:0]                store_bid,
 
   output                        retire_store_finish,
-  output [`ROB_ADDR_WIDTH-1:0]  retire_store_rob_idx
+  output [`ROB_ADDR_WIDTH-1:0]  retire_store_rob_idx,
+
+  output                        store_busy,
+  input                         load_busy
 );
   
-  reg [`ROB_ADDR_WIDTH-1:0] todo_list[0:15];
+  reg [`ROB_ADDR_WIDTH-1:0] todo_list[15:0];
   reg [4:0] head, tail;
-  reg [4:0] tail_next = tail + 1;
+  wire [4:0] tail_next = tail + 5'd1;
   wire empty = (head == tail);
 
   reg [`PADDR_WIDTH-1:0]    addr[0:`ROB_SIZE-1];
@@ -65,7 +68,7 @@ module STORE_BUFFER (
     if(reset) state <= S0;
     else begin
       case(state)
-        S0: state <= (!empty) || (retire_valid_0 || retire_valid_1) ? S1 : S0;
+        S0: state <= (load_busy) ? S0 : (!empty) || (retire_valid_0 || retire_valid_1) ? S1 : S0;
         S1: state <= store_awready ? S2 : S1;
         S2: state <= store_wready ? S3 : S2;
         S3: state <= store_bvalid && (store_bid == 4'b0000) && (store_bresp == 2'b00) ? S0 : S3;
@@ -78,23 +81,18 @@ module STORE_BUFFER (
       head <= 0;
       tail <= 0;
     end
-    else begin
-      if(state == S0 && retire_valid_0 && retire_valid_1) begin
+    else if(!load_busy) begin
+      if(state == S0 && retire_valid_0) begin
         todo_list[tail[3:0]] <= retire_rob_idx_0;
-        todo_list[tail_next[3:0]] <= retire_rob_idx_1;
-        tail <= tail + 2;
-      end
-      else if(state == S0 && retire_valid_0) begin
-        todo_list[tail[3:0]] <= retire_rob_idx_0;
-        tail <= tail + 1;
+        tail <= tail + 5'd1;
       end
       else if(state == S0 && retire_valid_1) begin
         todo_list[tail[3:0]] <= retire_rob_idx_1;
-        tail <= tail + 1;
+        tail <= tail + 5'd1;
       end
 
       if((state == S3) && store_bvalid && (store_bid == 4'b0000) && (store_bresp == 2'b00)) begin
-        head <= head + 1;
+        head <= head + 5'd1;
         free[head_rob_idx] <= 1'b0;
       end
     end
@@ -108,7 +106,7 @@ module STORE_BUFFER (
   wire sh_inst = op[head_rob_idx][1];
   wire sw_inst = op[head_rob_idx][2];
 
-  assign store_awvalid = (state == S1) || (state == S0 && !empty);
+  assign store_awvalid = (state == S1);
   assign store_awaddr = addr[head_rob_idx];
   assign store_awlen = 8'd0;
   assign store_awsize[0] = sh_inst;
@@ -126,5 +124,5 @@ module STORE_BUFFER (
   assign store_wstrb[0] = sw_inst | (sb_inst && addr[head_rob_idx][1:0] == 2'b00) | (sh_inst && addr[head_rob_idx][1:0] == 2'b00);
 
   assign store_bready = (state == S2 || state == S3);
-
+  assign store_busy = (state == S0 && !load_busy && ((!empty) || retire_valid_0 || retire_valid_1)) || (state == S1 || state == S2 || state == S3);
 endmodule

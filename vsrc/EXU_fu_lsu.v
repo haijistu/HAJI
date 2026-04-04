@@ -38,7 +38,8 @@ module FU_lsu (
   output [`WORD_WIDTH-1:0]          lsu_store_data,
 
   // lsu - busy
-  output                            lsu_busy
+  output                            load_busy,
+  input                             store_busy
 );
   // 内部信号定义
   wire [`WORD_WIDTH-1:0]  lsu_src1;
@@ -73,7 +74,7 @@ module FU_lsu (
       state <= C0;
     end
     case (state)
-      C0: state <= (lsu_issue_valid && load_inst) ? C1 : C0;
+      C0: state <= store_busy ? C0 : (lsu_issue_valid && load_inst) ? C1 : C0;
       C1: state <= lsu_arready ? C2 : C1;
       C2: state <= lsu_rvalid && lsu_rlast && (lsu_rid == 4'b0000) && (lsu_rresp == 2'b00) ? C0 : C2;
       default: state <= C0;
@@ -104,5 +105,5 @@ module FU_lsu (
               (lh_inst  && lsu_addr[1:0] == 2'b10) ? {{16{lsu_rdata[31]}}, lsu_rdata[31:16]} :
               (lh_inst  && lsu_addr[1:0] == 2'b00) ? {{16{lsu_rdata[15]}}, lsu_rdata[15: 0]} : 0;
 
-  assign lsu_busy = (state == C0 && lsu_issue_valid && load_inst) || (state == C1) || (state == C2);
+  assign load_busy = (state == C0 && lsu_issue_valid && load_inst) || (state == C1) || (state == C2);
 endmodule

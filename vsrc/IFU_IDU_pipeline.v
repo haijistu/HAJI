@@ -2,6 +2,7 @@
 module IFU_IDU_pipeline (
   input clock,
   input reset,
+  input stall,
 
   input [`PADDR_WIDTH-1:0]     ifu_pc_0,
   input [`WORD_WIDTH-1:0 ]     ifu_inst_0,
@@ -27,7 +28,7 @@ always @(posedge clock or posedge reset) begin
     idu_pc_1 <= 0;
     idu_valid_1 <= 0;
   end
-  else begin
+  else if(!stall) begin
     if(ifu_valid_0) begin
       idu_inst_0 <= ifu_inst_0;
       idu_pc_0 <= ifu_pc_0;

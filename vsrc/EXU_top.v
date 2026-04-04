@@ -70,8 +70,8 @@ module EXU_top (
   output [`WORD_WIDTH-1:0]          bru_wd,
 
   // lsu - busy
-  output                            lsu_busy
-
+  output                            load_busy,
+  input                             store_busy
 );
   FU_alu alu(
     .alu_psrc1(alu_psrc1),
@@ -117,7 +117,8 @@ module EXU_top (
     .lsu_store_data(lsu_store_data),
     .lsu_store_op(lsu_store_op),
     
-    .lsu_busy(lsu_busy)
+    .load_busy(load_busy),
+    .store_busy(store_busy)
   );
 
   FU_bru bru(

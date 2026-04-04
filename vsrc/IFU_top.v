@@ -2,6 +2,7 @@
 module IFU_top (
   input clock,
   input reset,
+  input stall,
 
   // IFU与icache的握手接口
   input                               icache_ivalid, // 指令有效信号
@@ -45,7 +46,7 @@ module IFU_top (
     if(reset) begin
       state <= C0;
     end
-    else begin 
+    else if(!stall)begin 
       case (state)
         C1: state <= idu_bru_valid ? C4 : icache_iarready ? C2 : C1;
         C2: state <= icache_ivalid ? C3 : C2;
@@ -56,21 +57,26 @@ module IFU_top (
     end
   end
 
-  assign ifu_arvalid = (state == C1) && ~idu_bru_valid;
+  assign ifu_arvalid = (!stall) && (state == C1) && (!idu_bru_valid);
   assign ifu_araddr = pc;
-  assign ifu_rready = (state == C2);
+  assign ifu_rready = (!stall) && (state == C2);
+
   always @(posedge clock) begin
     if(reset) pc <= `INIT_PC;
-    else if (state == C3) pc <= next_pc;
-    else if (retire_bru_valid) pc <= next_pc;
+    else if(!stall) begin
+      if (state == C3) pc <= next_pc;
+      else if (retire_bru_valid) pc <= next_pc;
+    end
   end
 
   assign ifu_pc0 = pc;
   assign ifu_pc1 = pc + 32'd4;
   always @(posedge clock) begin
     if(reset) {ifu_inst1, ifu_inst0} <= 64'd0;
-    else if(icache_ivalid) {ifu_inst1, ifu_inst0} <= icache_idata;
+    else if(!stall) begin
+      if(icache_ivalid) {ifu_inst1, ifu_inst0} <= icache_idata;
+    end
   end
-  assign ifu_valid_0 = (state == C3);
-  assign ifu_valid_1 = (state == C3);
+  assign ifu_valid_0 = (!stall) && (state == C3);
+  assign ifu_valid_1 = (!stall) && (state == C3);
 endmodule

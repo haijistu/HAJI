@@ -48,7 +48,10 @@ module ISSUE_outoforder_queue (
   input                             retire_valid_0,
   input [`PREG_ADDR_WIDTH-1:0]      retire_prd_0,
   input                             retire_valid_1,
-  input [`PREG_ADDR_WIDTH-1:0]      retire_prd_1
+  input [`PREG_ADDR_WIDTH-1:0]      retire_prd_1,
+
+  // stall
+  output                            queue_full
 );
   reg                         queue_free [0:`QUEUE_SIZE-1]; // 0为空闲 1为非空闲
   reg [`OP_WIDTH-1:0]         queue_op [0:`QUEUE_SIZE-1];
@@ -84,9 +87,8 @@ module ISSUE_outoforder_queue (
     .push1(),
     .pop0(free_id_0),
     .pop1(free_id_1),
-    .empty()
+    .empty(queue_full)
   );
-  
 
   integer i;
   always @(posedge clock or posedge reset) begin

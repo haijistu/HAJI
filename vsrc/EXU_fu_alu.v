@@ -71,6 +71,7 @@ module FU_alu (
       `ALU_SRA:   alu_result = alu_sra_result;
       `ALU_OR:    alu_result = alu_or_result;
       `ALU_AND:   alu_result = alu_and_result;
+      `ALU_B:     alu_result = alu_lui_result;
       `ALU_AUIPC: alu_result = alu_issue_imm + alu_issue_pc;
       default:    alu_result = alu_add_result;
     endcase

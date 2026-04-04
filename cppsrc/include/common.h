@@ -50,10 +50,10 @@ static inline word_t mem_read(void* addr, int len) {
 void ftrace_ret(int pc);
 void ftrace_call(int pc, int dnpc);
 
-#define ITRACE_COND
+// #define ITRACE_COND
 // #define MTRACE_COND
 // #define FTRACE_COND
-// #define DIFFTEST_COND
+#define DIFFTEST_COND
 extern bool difftest_skip_ref;
 extern bool difftest_skip_next_ref;
 void init_monitor(int argc, char *argv[]);
@@ -65,16 +65,16 @@ void cpu_exec(uint64_t n);
 typedef struct {
   word_t gpr[16];
   vaddr_t pc;
-  vaddr_t mepc;
-  word_t mstatus;
-  word_t mcause;
-  word_t mtvec;
-  word_t mvendorid;
-  word_t marchid;
+  // vaddr_t mepc;
+  // word_t mstatus;
+  // word_t mcause;
+  // word_t mtvec;
+  // word_t mvendorid;
+  // word_t marchid;
 } CPU_state;
 void init_difftest(char *ref_so_file, long img_size, int port);
 enum { DIFFTEST_TO_DUT, DIFFTEST_TO_REF };
-void difftest_step(word_t pc, word_t cur_pc);
+void difftest_step(word_t pc, word_t cur_pc, int cnt);
 
 extern VerilatedContext* contextp;
 extern VysyxSoCFull* top;
@@ -116,7 +116,6 @@ extern VerilatedFstC* tfp;
 // #define npc_jalr_inst   top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__IDU0__DOT__jalr_inst
 // #define npc_jal_inst    top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__IDU0__DOT__jal_inst
 // #define npc_jump_addr   top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__jump_addr
-// #define npc_clint       top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__clint__DOT__mtime
 
 #define npc_ifu_state   top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__IFU0__DOT__state
 #define retire_valid_0  top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__retire_valid_0
@@ -125,3 +124,10 @@ extern VerilatedFstC* tfp;
 #define retire_pc_1     top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__ROB0__DOT__retire_pc_1
 #define retire_inst_0   top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__ROB0__DOT__retire_inst_0
 #define retire_inst_1   top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__ROB0__DOT__retire_inst_1
+#define npc_clint       top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__clint__DOT__mtime
+
+// arch state
+#define npc_areg2preg(i)  top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__RENAME0__DOT__rename_rat__DOT__retire_rat[i]
+#define npc_preg(i)       top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__preg_file__DOT__prf[i]
+#define npc_areg(i)       npc_preg(npc_areg2preg(i))
+#define npc_pc            top->rootp->ysyxSoCFull__DOT__asic__DOT__cpu__DOT__cpu__DOT__cpu__DOT__ROB0__DOT__apc

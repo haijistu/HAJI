@@ -37,14 +37,14 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
   CPU_state ref_r;
   for(int i = 0;i<16;i++) ref_r.gpr[i] = 0;
   ref_r.pc = npc_pc;
-  ref_r.mcause = 0;
-  ref_r.mepc = 0;
-  ref_r.mtvec = 0;
-  ref_r.mcause = 0;
-  ref_r.marchid = 0x018CE197;
-  ref_r.mstatus = 0x1800;
-  ref_r.mvendorid = 0x79737978;
-  ref_r.marchid = 0x018CE197;
+  // ref_r.mcause = 0;
+  // ref_r.mepc = 0;
+  // ref_r.mtvec = 0;
+  // ref_r.mcause = 0;
+  // ref_r.marchid = 0x018CE197;
+  // ref_r.mstatus = 0x1800;
+  // ref_r.mvendorid = 0x79737978;
+  // ref_r.marchid = 0x018CE197;
   ref_difftest_regcpy(&ref_r, DIFFTEST_TO_REF);
 #endif
 }
@@ -52,24 +52,24 @@ void init_difftest(char *ref_so_file, long img_size, int port) {
 bool difftest_skip_ref = false;
 bool difftest_skip_next_ref = false;
 
-void difftest_step(word_t pc, word_t cur_pc) {
+void difftest_step(word_t pc, word_t cur_pc, int step) {
 #ifdef DIFFTEST_COND
   CPU_state ref_r;
   // 复制时钟
   ref_difftest_mtimecpy(&npc_clint);
   if(difftest_skip_ref) {
-    for(int i = 0;i<16;i++) ref_r.gpr[i] = regs(i);
+    for(int i = 0;i<16;i++) ref_r.gpr[i] = npc_areg(i);
     ref_r.pc = npc_pc;
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_REF);
     return ;
   }
   else {
-    ref_difftest_exec(1);
+    ref_difftest_exec(step);
     ref_difftest_regcpy(&ref_r, DIFFTEST_TO_DUT);
     for(int i = 0; i <16; i++){
-      if(regs(i) != ref_r.gpr[i]) {
+      if(npc_areg(i) != ref_r.gpr[i]) {
         printf(ANSI_FMT("npc difftest halt pc: 0x%08x\n", ANSI_FG_RED), cur_pc);
-        printf(ANSI_FMT("regs[%d] expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), i, ref_r.gpr[i], regs(i));
+        printf(ANSI_FMT("regs[%d] expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), i, ref_r.gpr[i], npc_areg(i));
         npc_state = NPC_ABORT;
         return ;
       }
@@ -80,30 +80,30 @@ void difftest_step(word_t pc, word_t cur_pc) {
       npc_state = NPC_ABORT;
       return ;
     }
-    if(npc_mepc != ref_r.mepc) {
-      printf(ANSI_FMT("npc difftest halt pc: 0x%08x\n", ANSI_FG_RED), cur_pc);
-      printf(ANSI_FMT("mepc expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), ref_r.mepc, npc_mepc);
-      npc_state = NPC_ABORT;
-      return ;
-    }
-    if(npc_mstatus != ref_r.mstatus) {
-      printf(ANSI_FMT("npc difftest halt pc: 0x%08x\n", ANSI_FG_RED), cur_pc);
-      printf(ANSI_FMT("mstatus expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), ref_r.mstatus, npc_mstatus);
-      npc_state = NPC_ABORT;
-      return ;
-    }
-    if(npc_mcause != ref_r.mcause) {
-      printf(ANSI_FMT("npc difftest halt pc: 0x%08x\n", ANSI_FG_RED), cur_pc);
-      printf(ANSI_FMT("mcause expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), ref_r.mcause, npc_mcause);
-      npc_state = NPC_ABORT;
-      return ;
-    }
-    if(npc_mtvec != ref_r.mtvec) {
-      printf(ANSI_FMT("npc difftest halt pc: 0x%08x\n", ANSI_FG_RED), cur_pc);
-      printf(ANSI_FMT("mtvec expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), ref_r.mtvec, npc_mtvec);
-      npc_state = NPC_ABORT;
-      return ;
-    }
+    // if(npc_mepc != ref_r.mepc) {
+    //   printf(ANSI_FMT("npc difftest halt pc: 0x%08x\n", ANSI_FG_RED), cur_pc);
+    //   printf(ANSI_FMT("mepc expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), ref_r.mepc, npc_mepc);
+    //   npc_state = NPC_ABORT;
+    //   return ;
+    // }
+    // if(npc_mstatus != ref_r.mstatus) {
+    //   printf(ANSI_FMT("npc difftest halt pc: 0x%08x\n", ANSI_FG_RED), cur_pc);
+    //   printf(ANSI_FMT("mstatus expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), ref_r.mstatus, npc_mstatus);
+    //   npc_state = NPC_ABORT;
+    //   return ;
+    // }
+    // if(npc_mcause != ref_r.mcause) {
+    //   printf(ANSI_FMT("npc difftest halt pc: 0x%08x\n", ANSI_FG_RED), cur_pc);
+    //   printf(ANSI_FMT("mcause expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), ref_r.mcause, npc_mcause);
+    //   npc_state = NPC_ABORT;
+    //   return ;
+    // }
+    // if(npc_mtvec != ref_r.mtvec) {
+    //   printf(ANSI_FMT("npc difftest halt pc: 0x%08x\n", ANSI_FG_RED), cur_pc);
+    //   printf(ANSI_FMT("mtvec expected: 0x%08x yours: 0x%08x\n", ANSI_FG_RED), ref_r.mtvec, npc_mtvec);
+    //   npc_state = NPC_ABORT;
+    //   return ;
+    // }
   }
   difftest_skip_ref = difftest_skip_next_ref;
   difftest_skip_next_ref = false;

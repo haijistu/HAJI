@@ -754,6 +754,7 @@ module riscv32(
 
     .lsu_load_valid(lsu_wb_load_valid),
     .lsu_store_valid(lsu_wb_store_valid),
+    .lsu_store_finish(retire_store_finish),
     .lsu_wd(lsu_wb_wd),
     .lsu_store_addr(lsu_store_addr),
     .lsu_store_data(lsu_store_data),
@@ -918,7 +919,6 @@ module riscv32(
     .store_rob_idx(lsu_wb_rob_idx),
 
     .load_busy(load_busy),
-    .store_busy(store_busy),
     // retire
     .retire_valid_0(retire_store_valid_0),
     .retire_rob_idx_0(retire_rob_idx_0),

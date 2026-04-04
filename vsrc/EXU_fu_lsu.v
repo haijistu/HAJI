@@ -33,13 +33,14 @@ module FU_lsu (
   output [`WORD_WIDTH-1:0]          lsu_wd,
   output                            lsu_load_valid,
   output                            lsu_store_valid,
+  input                             lsu_store_finish,
   output [2:0]                      lsu_store_op,
   output [`PADDR_WIDTH-1:0]         lsu_store_addr,
   output [`WORD_WIDTH-1:0]          lsu_store_data,
 
   // lsu - busy
   output                            load_busy,
-  input                             store_busy
+  output                            store_busy
 );
   // 内部信号定义
   wire [`WORD_WIDTH-1:0]  lsu_src1;
@@ -55,7 +56,7 @@ module FU_lsu (
   wire lw_inst  = ~lsu_issue_op[3] & ~lsu_issue_op[2] &  lsu_issue_op[1] & ~lsu_issue_op[0];
   wire lbu_inst = ~lsu_issue_op[3] &  lsu_issue_op[2] & ~lsu_issue_op[1] & ~lsu_issue_op[0];
   wire lb_inst  = ~lsu_issue_op[3] & ~lsu_issue_op[2] & ~lsu_issue_op[1] & ~lsu_issue_op[0];
-  wire lhu_inst = ~lsu_issue_op[3] &  lsu_issue_op[2] &  lsu_issue_op[1] &  lsu_issue_op[0];
+  wire lhu_inst = ~lsu_issue_op[3] &  lsu_issue_op[2] & ~lsu_issue_op[1] &  lsu_issue_op[0];
   wire lh_inst  = ~lsu_issue_op[3] & ~lsu_issue_op[2] & ~lsu_issue_op[1] &  lsu_issue_op[0];
   wire sw_inst  =  lsu_issue_op[3] & ~lsu_issue_op[2] &  lsu_issue_op[1] & ~lsu_issue_op[0];
   wire sb_inst  =  lsu_issue_op[3] & ~lsu_issue_op[2] & ~lsu_issue_op[1] & ~lsu_issue_op[0];
@@ -74,9 +75,10 @@ module FU_lsu (
       state <= C0;
     end
     case (state)
-      C0: state <= store_busy ? C0 : (lsu_issue_valid && load_inst) ? C1 : C0;
+      C0: state <= lsu_store_valid ? C3 : (lsu_issue_valid && load_inst) ? C1 : C0;
       C1: state <= lsu_arready ? C2 : C1;
       C2: state <= lsu_rvalid && lsu_rlast && (lsu_rid == 4'b0000) && (lsu_rresp == 2'b00) ? C0 : C2;
+      C3: state <= lsu_store_finish ? C0 : C3;
       default: state <= C0;
     endcase
   end
@@ -106,4 +108,5 @@ module FU_lsu (
               (lh_inst  && lsu_addr[1:0] == 2'b00) ? {{16{lsu_rdata[15]}}, lsu_rdata[15: 0]} : 0;
 
   assign load_busy = (state == C0 && lsu_issue_valid && load_inst) || (state == C1) || (state == C2);
+  assign store_busy = (state == C0 && lsu_store_valid) || (state == C3);
 endmodule

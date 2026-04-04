@@ -58,12 +58,11 @@ static int cmd_info(char *args) {
   char *arg = strtok(NULL, "");
   if(arg == NULL || strcmp(arg, "r") == 0) {
     // 默认输出寄存器
-    // isa_reg_display();
-    // int i = 0;
-    // for(;i<16;i++) {
-    //   printf("%s\t" FMT_WORD "\t%u\n", regs[i], (word_t)regs(i), (word_t)regs(i));
-    // }
-    // printf("pc\t" FMT_WORD "\t%u\n", (word_t)npc_pc, (word_t)npc_pc);
+    int i = 0;
+    for(;i<16;i++) {
+      printf("%s\t" FMT_WORD "\t%u\n", regs[i], (word_t)npc_areg(i), (word_t)npc_areg(i));
+    }
+    printf("pc\t" FMT_WORD "\t%u\n", (word_t)npc_pc, (word_t)npc_pc);
     // printf("mcycle\t" FMT_WORD "\t%u\n", (word_t)npc_mcycle, (word_t)npc_mcycle);
     // printf("mcycleh\t" FMT_WORD "\t%u\n", (word_t)npc_mcycleh, (word_t)npc_mcycleh);
     // printf("mstatus\t" FMT_WORD "\t%u\n", (word_t)npc_mstatus, (word_t)npc_mstatus);

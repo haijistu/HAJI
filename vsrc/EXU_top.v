@@ -56,6 +56,7 @@ module EXU_top (
   // lsu - load
   output                            lsu_load_valid,
   output                            lsu_store_valid,
+  input                             lsu_store_finish,
   output [`PADDR_WIDTH-1:0]         lsu_store_addr,
   output [`WORD_WIDTH-1:0]          lsu_store_data,
   output [2:0]                      lsu_store_op,
@@ -71,7 +72,7 @@ module EXU_top (
 
   // lsu - busy
   output                            load_busy,
-  input                             store_busy
+  output                            store_busy
 );
   FU_alu alu(
     .alu_psrc1(alu_psrc1),
@@ -112,6 +113,7 @@ module EXU_top (
 
     .lsu_load_valid(lsu_load_valid),
     .lsu_store_valid(lsu_store_valid),
+    .lsu_store_finish(lsu_store_finish),
     .lsu_wd(lsu_wd),
     .lsu_store_addr(lsu_store_addr),
     .lsu_store_data(lsu_store_data),

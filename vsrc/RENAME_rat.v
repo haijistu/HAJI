@@ -69,10 +69,10 @@ module RENAME_rat (
       end
     end
     else begin
-      if(retire_valid_0) begin
+      if(retire_valid_0 && retire_areg_0 != 0) begin
         retire_rat[retire_areg_0] <= retire_preg_0;
       end
-      if(retire_valid_1) begin
+      if(retire_valid_1&& retire_areg_1 != 0) begin
         retire_rat[retire_areg_1] <= retire_preg_1;
       end
     end

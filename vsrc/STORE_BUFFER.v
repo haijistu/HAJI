@@ -35,7 +35,6 @@ module STORE_BUFFER (
   output                        retire_store_finish,
   output [`ROB_ADDR_WIDTH-1:0]  retire_store_rob_idx,
 
-  output                        store_busy,
   input                         load_busy
 );
   
@@ -124,5 +123,4 @@ module STORE_BUFFER (
   assign store_wstrb[0] = sw_inst | (sb_inst && addr[head_rob_idx][1:0] == 2'b00) | (sh_inst && addr[head_rob_idx][1:0] == 2'b00);
 
   assign store_bready = (state == S2 || state == S3);
-  assign store_busy = (state == S0 && !load_busy && ((!empty) || retire_valid_0 || retire_valid_1)) || (state == S1 || state == S2 || state == S3);
 endmodule

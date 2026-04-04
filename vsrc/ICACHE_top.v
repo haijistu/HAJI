@@ -177,7 +177,8 @@ module ICACHE_top (
       // 条件2：跨块/单块 读取完成
       if( (ifu_arvalid && hit) || 
           (state==3'd2 && !cross_line && icache_rvalid && icache_rlast) || 
-          (state==3'd4 && cross_line && icache_rvalid && icache_rlast) )
+          (state==3'd4 && cross_line && icache_rvalid && icache_rlast) ||
+          (state==3'd2 && cross_line && hit1 && icache_rvalid && icache_rlast))
         ivalid <= 1'b1;
       // IFU接收数据后拉低
       else if(ifu_rready)

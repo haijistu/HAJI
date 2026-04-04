@@ -32,12 +32,16 @@ void tick() {
 #endif
 }
 
+bool skip_flag = false;
 void exec_once() {
   while(npc_ifu_state == 0) tick();
   // 取指令
   bool retire_flag = false;
+  word_t cur_pc = npc_pc;
+  int cnt = 0;
   if(!retire_flag) {
-    tick();
+    if(!skip_flag) tick();
+    else skip_flag = false;
     if(retire_valid_0 == 1) {
       retire_flag = true;
       if(itrace_flag) {
@@ -46,6 +50,7 @@ void exec_once() {
       if(retire_inst_0 == 0x00100073) {
         npctrap();
       }
+      cnt++;
     }
     
     if(retire_valid_1 == 1) {
@@ -56,8 +61,15 @@ void exec_once() {
       if(retire_inst_1 == 0x00100073) {
         npctrap();
       }
+      cnt++;
+    }
+    if(retire_flag) {
+      tick(); // 利用valid更新指令集状态
+      skip_flag = true;
+      retire_flag = retire_valid_0 || retire_valid_1 ? false : true;
     }
   }
+  difftest_step(npc_pc, cur_pc, cnt);
 }
 
 void cpu_exec(uint64_t n) {
@@ -71,7 +83,6 @@ void cpu_exec(uint64_t n) {
     // word_t cur_pc = npc_pc;
     exec_once();
     // printf("0x%08x\n", npc_pc);
-    // difftest_step(npc_pc, cur_pc);
     if(npc_state != NPC_RUNNING) break;
   }
 

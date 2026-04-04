@@ -234,4 +234,18 @@ module ROB (
   end
   
   assign rob_full = ((tail[`ROB_ADDR_WIDTH-1:0] == head[`ROB_ADDR_WIDTH-1:0]) && (tail[`ROB_ADDR_WIDTH] ^ head[`ROB_ADDR_WIDTH])) || ((tail_next[`ROB_ADDR_WIDTH-1:0] == head[`ROB_ADDR_WIDTH-1:0]) && (tail_next[`ROB_ADDR_WIDTH] ^ head[`ROB_ADDR_WIDTH]));
+
+  reg [`PADDR_WIDTH-1:0] apc;
+  always @(posedge clock) begin
+    if(reset) apc <= `INIT_PC;
+    else if(retire_bru_valid) begin
+      apc <= retire_bru_flag ? retire_bru_addr : retire_bru_pc + 32'd4;
+    end
+    else if(retire_valid_0 && retire_valid_1) begin
+      apc <= retire_pc_1 + 32'd4;
+    end
+    else if(retire_valid_0) begin
+      apc <= retire_pc_0 + 32'd4;
+    end
+  end
 endmodule

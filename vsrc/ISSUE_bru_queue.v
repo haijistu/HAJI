@@ -1,5 +1,5 @@
 `include "defines.v"
-module ISSUE_inorder_queue (
+module ISSUE_bru_queue (
   input clock,
   input reset,
 

@@ -12,6 +12,9 @@ module ISSUE_EXU_pipeline (
   input [`PREG_ADDR_WIDTH-1:0] alu_issue_prs2,
   input [`PREG_ADDR_WIDTH-1:0] alu_issue_prd,
   input [`ROB_ADDR_WIDTH-1:0]  alu_issue_rob_idx,
+  input [`CSR_ADDR_WIDTH-1:0]  alu_issue_csr_addr,
+  input [`CSR_OP_WIDTH-1:0]    alu_issue_csr_op,
+  input [4:0]                  alu_issue_zimm,
 
   input                        lsu_issue_valid,
   input [`OP_WIDTH-1:0]        lsu_issue_op,
@@ -33,6 +36,11 @@ module ISSUE_EXU_pipeline (
   input [`PREG_ADDR_WIDTH-1:0] bru_issue_prd,
   input [`ROB_ADDR_WIDTH-1:0]  bru_issue_rob_idx,
 
+  input                        exc_issue_valid,
+  input [`OP_WIDTH-1:0]        exc_issue_op,
+  input [`PADDR_WIDTH-1:0]     exc_issue_pc,
+  input [`ROB_ADDR_WIDTH-1:0]  exc_issue_rob_idx,
+
   output reg                        alu_valid,
   output reg [`OP_WIDTH-1:0]        alu_op,
   output reg [`WORD_WIDTH-1:0]      alu_imm,
@@ -42,6 +50,9 @@ module ISSUE_EXU_pipeline (
   output reg [`PREG_ADDR_WIDTH-1:0] alu_prs2,
   output reg [`PREG_ADDR_WIDTH-1:0] alu_prd,
   output reg [`ROB_ADDR_WIDTH-1:0]  alu_rob_idx,
+  output reg [`CSR_ADDR_WIDTH-1:0]  alu_csr_addr,
+  output reg [`CSR_OP_WIDTH-1:0]    alu_csr_op,
+  output reg [4:0]                  alu_zimm,
 
   output reg                        lsu_valid,
   output reg [`OP_WIDTH-1:0]        lsu_op,
@@ -61,7 +72,12 @@ module ISSUE_EXU_pipeline (
   output reg [`PREG_ADDR_WIDTH-1:0] bru_prs1,
   output reg [`PREG_ADDR_WIDTH-1:0] bru_prs2,
   output reg [`PREG_ADDR_WIDTH-1:0] bru_prd,
-  output reg [`ROB_ADDR_WIDTH-1:0]  bru_rob_idx
+  output reg [`ROB_ADDR_WIDTH-1:0]  bru_rob_idx,
+  
+  output reg                        exc_valid,
+  output reg [`OP_WIDTH-1:0]        exc_op,
+  output reg [`PADDR_WIDTH-1:0]     exc_pc,
+  output reg [`ROB_ADDR_WIDTH-1:0]  exc_rob_idx
 );
   
   always @(posedge clock) begin
@@ -75,6 +91,10 @@ module ISSUE_EXU_pipeline (
       alu_prs2 <= 0;
       alu_prd <= 0;
       alu_rob_idx <= 0;
+      alu_csr_addr <= 0;
+      alu_csr_op <= 0;
+      alu_zimm <= 0;
+
       lsu_valid <= 0;
       lsu_op <= 0;
       lsu_imm <= 0;
@@ -84,6 +104,7 @@ module ISSUE_EXU_pipeline (
       lsu_prs2 <= 0;
       lsu_prd <= 0;
       lsu_rob_idx <= 0;
+
       bru_valid <= 0;
       bru_op <= 0;
       bru_imm <= 0;
@@ -93,6 +114,11 @@ module ISSUE_EXU_pipeline (
       bru_prs2 <= 0;
       bru_prd <= 0;
       bru_rob_idx <= 0;
+
+      exc_valid <= 0;
+      exc_op <= 0;
+      exc_pc <= 0;
+      exc_rob_idx <= 0;
     end
     else begin
       if(alu_issue_valid) begin
@@ -105,6 +131,9 @@ module ISSUE_EXU_pipeline (
         alu_prs2 <= alu_issue_prs2;
         alu_prd <= alu_issue_prd;
         alu_rob_idx <= alu_issue_rob_idx;
+        alu_csr_addr <= alu_issue_csr_addr;
+        alu_csr_op <= alu_issue_csr_op;
+        alu_zimm <= alu_issue_zimm;
       end
       else alu_valid <= 0;
 
@@ -121,7 +150,7 @@ module ISSUE_EXU_pipeline (
       end
       else lsu_valid <= 0;
       
-      if(bru_issue_valid)begin
+      if(bru_issue_valid) begin
         bru_valid <= 1;
         bru_op <= bru_issue_op;
         bru_imm <= bru_issue_imm;
@@ -133,6 +162,14 @@ module ISSUE_EXU_pipeline (
         bru_rob_idx <= bru_issue_rob_idx;
       end
       else bru_valid <= 0;
+
+      if(exc_issue_valid) begin
+        exc_valid <= 1;
+        exc_op <= exc_issue_op;
+        exc_pc <= exc_issue_pc;
+        exc_rob_idx <= exc_issue_rob_idx;
+      end
+      else exc_valid <= 0;
     end
   end
 endmodule

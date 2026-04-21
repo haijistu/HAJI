@@ -19,6 +19,9 @@ module IDU_ISSUE_pipeline (
   input [`OP_WIDTH-1:0]        idu_op_0,
   input [`FU_TYPE_WIDTH-1:0]   idu_fu_type_0,
   input [`PADDR_WIDTH-1:0]     idu_pc_0,
+  input [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_0,
+  input [`CSR_OP_WIDTH-1:0]    idu_csr_op_0,
+  input [4:0]                  idu_zimm_0,
 
   input [`WORD_WIDTH-1:0]      idu_inst_1,
   input                        idu_valid_1,
@@ -35,6 +38,9 @@ module IDU_ISSUE_pipeline (
   input [`OP_WIDTH-1:0]        idu_op_1,
   input [`FU_TYPE_WIDTH-1:0]   idu_fu_type_1,
   input [`PADDR_WIDTH-1:0]     idu_pc_1,
+  input [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_1,
+  input [`CSR_OP_WIDTH-1:0]    idu_csr_op_1,
+  input [4:0]                  idu_zimm_1,
 
   output reg [`WORD_WIDTH-1:0]      issue_inst_0,
   output reg                        issue_valid_0,
@@ -51,6 +57,9 @@ module IDU_ISSUE_pipeline (
   output reg [`OP_WIDTH-1:0]        issue_op_0,
   output reg [`FU_TYPE_WIDTH-1:0]   issue_fu_type_0,
   output reg [`PADDR_WIDTH-1:0]     issue_pc_0,
+  output reg [`CSR_ADDR_WIDTH-1:0]  issue_csr_addr_0,
+  output reg [`CSR_OP_WIDTH-1:0]    issue_csr_op_0,
+  output reg [4:0]                  issue_zimm_0,
 
   output reg [`WORD_WIDTH-1:0]      issue_inst_1,
   output reg                        issue_valid_1,
@@ -66,7 +75,11 @@ module IDU_ISSUE_pipeline (
   output reg                        issue_imm_1_valid,
   output reg [`OP_WIDTH-1:0]        issue_op_1,
   output reg [`FU_TYPE_WIDTH-1:0]   issue_fu_type_1,
-  output reg [`PADDR_WIDTH-1:0]     issue_pc_1
+  output reg [`PADDR_WIDTH-1:0]     issue_pc_1,
+  
+  output reg [`CSR_ADDR_WIDTH-1:0]  issue_csr_addr_1,
+  output reg [`CSR_OP_WIDTH-1:0]    issue_csr_op_1,
+  output reg [4:0]                  issue_zimm_1
 );
 
 always @(posedge clock) begin
@@ -86,6 +99,9 @@ always @(posedge clock) begin
     issue_op_0 <= 0;
     issue_fu_type_0 <= 0;
     issue_pc_0 <= 0;
+    issue_csr_addr_0 <= 0;
+    issue_csr_op_0 <= 0;
+    issue_zimm_0 <= 0;
 
     issue_inst_1 <= 0;
     issue_valid_1 <= 0;
@@ -102,6 +118,9 @@ always @(posedge clock) begin
     issue_op_1 <= 0;
     issue_fu_type_1 <= 0;
     issue_pc_1 <= 0;
+    issue_csr_addr_1 <= 0;
+    issue_csr_op_1 <= 0;
+    issue_zimm_1 <= 0;
   end
   else if(!stall) begin
     if(idu_valid_0) begin
@@ -120,6 +139,9 @@ always @(posedge clock) begin
       issue_op_0 <= idu_op_0;
       issue_fu_type_0 <= idu_fu_type_0;
       issue_pc_0 <= idu_pc_0;
+      issue_csr_addr_0 <= idu_csr_addr_0;
+      issue_csr_op_0 <= idu_csr_op_0;
+      issue_zimm_0 <= idu_zimm_0;
     end
     else issue_valid_0 <= 0;
 
@@ -139,6 +161,9 @@ always @(posedge clock) begin
       issue_op_1 <= idu_op_1;
       issue_fu_type_1 <= idu_fu_type_1;
       issue_pc_1 <= idu_pc_1;
+      issue_csr_addr_1 <= idu_csr_addr_1;
+      issue_csr_op_1 <= idu_csr_op_1;
+      issue_zimm_1 <= idu_zimm_1;
     end
     else issue_valid_1 <= 0;
   end

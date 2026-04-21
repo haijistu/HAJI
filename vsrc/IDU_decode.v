@@ -12,7 +12,12 @@ module IDU_decode (
   output     [`WORD_WIDTH-1:0]      imm,
   output                            imm_valid, // imm是否有效
   output     [`OP_WIDTH-1:0]        op,
-  output     [`FU_TYPE_WIDTH-1:0]   fu_type
+  output     [`FU_TYPE_WIDTH-1:0]   fu_type,
+
+  // csr
+  output     [`CSR_ADDR_WIDTH-1:0]  csr_addr,
+  output     [4:0]                  zimm,
+  output     [`CSR_OP_WIDTH-1:0]    csr_op      
 );
   wire [6:0] funct7 = inst[31:25];
   wire [2:0] funct3 = inst[14:12];
@@ -62,7 +67,14 @@ module IDU_decode (
   wire bltu_inst=  funct3[2]& funct3[1]&~funct3[0] & opcode[6]& opcode[5]&~opcode[4]&~opcode[3]&~opcode[2] & opcode[1]& opcode[0];
   wire bgeu_inst=  funct3[2]& funct3[1]& funct3[0] & opcode[6]& opcode[5]&~opcode[4]&~opcode[3]&~opcode[2] & opcode[1]& opcode[0];
 
-  // ebreak
+  wire csrrw_inst = ~funct3[2]&~funct3[1]& funct3[0]& opcode[6]& opcode[5]& opcode[4]&~opcode[3]&~opcode[2]& opcode[1] &opcode[0]; 
+  wire csrrs_inst = ~funct3[2]& funct3[1]&~funct3[0]& opcode[6]& opcode[5]& opcode[4]&~opcode[3]&~opcode[2]& opcode[1] &opcode[0]; 
+  wire csrrc_inst = ~funct3[2]& funct3[1]& funct3[0]& opcode[6]& opcode[5]& opcode[4]&~opcode[3]&~opcode[2]& opcode[1] &opcode[0]; 
+  wire csrrwi_inst =  funct3[2]&~funct3[1]& funct3[0]& opcode[6]& opcode[5]& opcode[4]&~opcode[3]&~opcode[2]& opcode[1] &opcode[0]; 
+  wire csrrsi_inst =  funct3[2]& funct3[1]&~funct3[0]& opcode[6]& opcode[5]& opcode[4]&~opcode[3]&~opcode[2]& opcode[1] &opcode[0]; 
+  wire csrrci_inst =  funct3[2]& funct3[1]& funct3[0]& opcode[6]& opcode[5]& opcode[4]&~opcode[3]&~opcode[2]& opcode[1] &opcode[0]; 
+  wire mret_inst = (inst == 32'b00110000001000000000000001110011);
+  wire ecall_inst = (inst == 32'b00000000000000000000000001110011);
   wire ebreak_inst = (inst == 32'h00100073);
 
   // 指令类型
@@ -72,6 +84,9 @@ module IDU_decode (
   wire instJ = jal_inst;
   wire instS = sw_inst | sb_inst | sh_inst;
   wire instB = beq_inst | bne_inst | bge_inst | blt_inst | bgeu_inst | bltu_inst;
+  wire instC = csrrw_inst | csrrc_inst | csrrs_inst;
+  wire instCi = csrrwi_inst | csrrci_inst | csrrsi_inst;
+  wire instEJ = ecall_inst | mret_inst;
 
   // imm
   wire [`WORD_WIDTH-1:0] immI = {{20{inst[31]}}, inst[31:20]};
@@ -80,26 +95,32 @@ module IDU_decode (
   wire [`WORD_WIDTH-1:0] immJ = {{12{inst[31]}}, inst[19:12], inst[20], inst[30:21], 1'b0};
   wire [`WORD_WIDTH-1:0] immB = {{20{inst[31]}}, inst[7], inst[30:25], inst[11:8], 1'b0};
 
-  assign op[3] = auipc_inst | sltu_inst | sltiu_inst | sub_inst | srai_inst | sra_inst | sb_inst | sh_inst | sw_inst | jal_inst | jalr_inst;
-  assign op[2] = xor_inst | or_inst | srai_inst | srli_inst | sra_inst | srl_inst | andi_inst | and_inst | xori_inst | ori_inst | bltu_inst | bgeu_inst | lbu_inst | lhu_inst;
+  assign op[3] = auipc_inst | sltu_inst | sltiu_inst | sub_inst | srai_inst | sra_inst | sb_inst | sh_inst | sw_inst | jal_inst | jalr_inst | ecall_inst;
+  assign op[2] = xor_inst | or_inst | srai_inst | srli_inst | sra_inst | srl_inst | andi_inst | and_inst | xori_inst | ori_inst | bltu_inst | bgeu_inst | lbu_inst | lhu_inst | mret_inst;
   assign op[1] = lui_inst | sltu_inst | or_inst | sltiu_inst | andi_inst | and_inst | ori_inst | slti_inst | slt_inst | lw_inst | sw_inst | blt_inst | bge_inst;
   assign op[0] = auipc_inst | lui_inst | srai_inst | srli_inst | slli_inst | sra_inst | srl_inst | sll_inst | andi_inst | and_inst | lh_inst | lhu_inst | sh_inst | bne_inst | bge_inst | bgeu_inst | jalr_inst;
 
   // 功能单元类型(riscv32e)
   assign fu_type[0] = add_inst | sub_inst | and_inst | or_inst | xor_inst | slt_inst | sltu_inst | sll_inst | sra_inst | srl_inst | addi_inst | slti_inst | sltiu_inst | slli_inst | srai_inst | srli_inst | andi_inst | ori_inst | xori_inst | auipc_inst | lui_inst | ebreak_inst;
   assign fu_type[1] = lw_inst | lbu_inst | lb_inst | lhu_inst | lh_inst;
-  assign fu_type[2] = sw_inst | sb_inst | sh_inst;
-  assign fu_type[3] = beq_inst | bne_inst | blt_inst | bge_inst | bltu_inst | bgeu_inst;
-  assign fu_type[4] = jal_inst | jalr_inst;
+  assign fu_type[2] = sw_inst | sb_inst | sh_inst | instEJ;
+  assign fu_type[3] = beq_inst | bne_inst | blt_inst | bge_inst | bltu_inst | bgeu_inst | instC | instCi;
+  assign fu_type[4] = jal_inst | jalr_inst | instC | instCi | instEJ;
+  
 
   assign imm =  instI ? immI : instS ? immS : instJ ? immJ : instB ? immB : instU ? immU : 0;
   
   assign rs1 = inst[19:15];
-  assign rs1_valid = instR | instS | instB | instI;
+  assign rs1_valid = instR | instS | instB | instI | instC;
   assign rs2 = inst[24:20];
   assign rs2_valid = instR | instS | instB; // R、S、B类型指令需要rs2
   assign rd = inst[11:7];
-  assign rd_valid = instR | instI | instU | instJ; // R、I、U、J类型指令需要rd
+  assign rd_valid = instR | instI | instU | instJ | instC | instCi; // R、I、U、J类型指令需要rd
   assign imm_valid = instI | instU | instS | instJ | instB; // I、U、S、J、B类型指令需要imm
+
+  // csr
+  assign zimm = inst[19:15];
+  assign csr_addr = inst[31:20];
+  assign csr_op = {instC | instCi, funct3};
 
 endmodule

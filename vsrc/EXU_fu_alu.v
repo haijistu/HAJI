@@ -2,12 +2,16 @@
 module FU_alu (
   input [`WORD_WIDTH-1:0]   alu_psrc1,
   input [`WORD_WIDTH-1:0]   alu_psrc2,
+  input [`WORD_WIDTH-1:0]   alu_csr,
   input [`OP_WIDTH-1:0]     alu_issue_op,
   input [`PADDR_WIDTH-1:0]  alu_issue_pc,
   input [`WORD_WIDTH-1:0]   alu_issue_imm,
   input                     alu_issue_imm_valid,
+  input [4:0]               alu_issue_zimm,
+  input [`CSR_OP_WIDTH-1:0] alu_issue_csr_op,
 
-  output [`WORD_WIDTH-1:0]  alu_wd
+  output [`WORD_WIDTH-1:0]  alu_wd,
+  output [`WORD_WIDTH-1:0]  alu_csr_wd
 );
 
   // 内部信号定义
@@ -77,5 +81,21 @@ module FU_alu (
     endcase
   end
   
-  assign alu_wd = alu_result;
+  reg [`WORD_WIDTH-1:0] alu_csr_result;
+  always @(*) begin
+    case (alu_issue_csr_op)
+      4'b1001: alu_csr_result = alu_psrc1; // csrrw
+      4'b1101: alu_csr_result = {27'b0, alu_issue_zimm};
+      4'b1010: alu_csr_result = alu_csr | alu_psrc1;
+      4'b1110: alu_csr_result = alu_csr | {27'b0, alu_issue_zimm};
+      4'b1011: alu_csr_result = alu_csr &~alu_psrc1;
+      4'b1111: alu_csr_result = alu_csr &~{27'b0, alu_issue_zimm};
+      default: alu_csr_result = 0;
+    endcase
+  end
+  
+  wire csr_valid = alu_issue_csr_op[`CSR_OP_WIDTH-1];
+
+  assign alu_wd = csr_valid ? alu_csr : alu_result;
+  assign alu_csr_wd = alu_csr_result;
 endmodule

@@ -16,6 +16,9 @@ module ISSUE_top (
   input [`PREG_ADDR_WIDTH-1:0] idu_prd_0,
   input                        idu_prd_valid_0,
   input [`PADDR_WIDTH-1:0]     idu_pc_0,
+  input [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_0,
+  input [`CSR_OP_WIDTH-1:0]    idu_csr_op_0,
+  input [4:0]                  idu_zimm_0,
 
   input                        idu_valid_1,
   input [`OP_WIDTH-1:0]        idu_op_1,
@@ -29,10 +32,20 @@ module ISSUE_top (
   input [`PREG_ADDR_WIDTH-1:0] idu_prd_1,
   input                        idu_prd_valid_1,
   input [`PADDR_WIDTH-1:0]     idu_pc_1,
+  input [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_1,
+  input [`CSR_OP_WIDTH-1:0]    idu_csr_op_1,
+  input [4:0]                  idu_zimm_1,
 
   // rob - idx
   input [`ROB_ADDR_WIDTH-1:0]   rob_idx_0,
   input [`ROB_ADDR_WIDTH-1:0]   rob_idx_1,
+
+  // CSR
+  input                         issue_csr_ready_0,
+  input                         issue_csr_ready_1,
+
+  input                         issue_mtvec_ready,
+  input                         issue_mepc_ready,
 
   // 发射到执行单元的指令信息
   output reg                         alu_issue_valid,
@@ -44,6 +57,9 @@ module ISSUE_top (
   output wire [`PREG_ADDR_WIDTH-1:0] alu_issue_prs2,
   output wire [`PREG_ADDR_WIDTH-1:0] alu_issue_prd,
   output wire [`ROB_ADDR_WIDTH-1:0]  alu_issue_rob_idx,
+  output wire [`CSR_ADDR_WIDTH-1:0]  alu_issue_csr_addr,
+  output wire [`CSR_OP_WIDTH-1:0]    alu_issue_csr_op,
+  output wire [4:0]                  alu_issue_zimm,
 
   input wire                         load_busy,
   input wire                         store_busy,
@@ -68,11 +84,21 @@ module ISSUE_top (
   output wire [`PREG_ADDR_WIDTH-1:0] bru_issue_prd,
   output wire [`ROB_ADDR_WIDTH-1:0]  bru_issue_rob_idx,
 
+  output reg                         exc_issue_valid,
+  output wire [`OP_WIDTH-1:0]        exc_issue_op,
+  output wire [`PADDR_WIDTH-1:0]     exc_issue_pc,
+  output wire [`ROB_ADDR_WIDTH-1:0]  exc_issue_rob_idx,
+
   // 写回广播(唤醒电路)
   input                             retire_valid_0,
   input [`PREG_ADDR_WIDTH-1:0]      retire_prd_0,
   input                             retire_valid_1,
-  input [`PREG_ADDR_WIDTH-1:0]      retire_prd_1
+  input [`PREG_ADDR_WIDTH-1:0]      retire_prd_1,
+
+  input                             retire_csr_valid_0,
+  input [`CSR_ADDR_WIDTH-1:0]       retire_csr_addr_0,
+  input                             retire_csr_valid_1,
+  input [`CSR_ADDR_WIDTH-1:0]       retire_csr_addr_1
 );
   wire src1_ready_0;
   wire src2_ready_0;
@@ -119,6 +145,9 @@ module ISSUE_top (
     .imm_0(idu_imm_0),
     .imm_0_valid(idu_imm_valid_0),
     .pc_0(idu_pc_0),
+    .csr_addr_0(idu_csr_addr_0),
+    .csr_op_0(idu_csr_op_0),
+    .zimm_0(idu_zimm_0),
 
     .prs1_1(idu_prs1_1),
     .prs1_valid_1(idu_prs1_valid_1),
@@ -132,19 +161,32 @@ module ISSUE_top (
     .imm_1(idu_imm_1),
     .imm_1_valid(idu_imm_valid_1),
     .pc_1(idu_pc_1),
+    .csr_addr_1(idu_csr_addr_1),
+    .csr_op_1(idu_csr_op_1),
+    .zimm_1(idu_zimm_1),
 
     .rob_idx_0(rob_idx_0),
     .rob_idx_1(rob_idx_1),
 
     .prs1_ready_0(src1_ready_0),
     .prs2_ready_0(src2_ready_0),
+    .issue_csr_ready_0(issue_csr_ready_0),
     .prs1_ready_1(src1_ready_1),
     .prs2_ready_1(src2_ready_1),
+    .issue_csr_ready_1(issue_csr_ready_1),
+    
+    .issue_mtvec_ready(issue_mtvec_ready),
+    .issue_mepc_ready(issue_mepc_ready),
 
     .retire_valid_0(retire_valid_0),
     .retire_prd_0(retire_prd_0),
     .retire_valid_1(retire_valid_1),
     .retire_prd_1(retire_prd_1),
+    
+    .retire_csr_valid_0(retire_csr_valid_0),
+    .retire_csr_addr_0(retire_csr_addr_0),
+    .retire_csr_valid_1(retire_csr_valid_1),
+    .retire_csr_addr_1(retire_csr_addr_1),
     
     // issue
     .alu_issue_valid(alu_issue_valid),
@@ -156,6 +198,9 @@ module ISSUE_top (
     .alu_issue_prs2(alu_issue_prs2),
     .alu_issue_prd(alu_issue_prd),
     .alu_issue_rob_idx(alu_issue_rob_idx),
+    .alu_issue_csr_addr(alu_issue_csr_addr),
+    .alu_issue_csr_op(alu_issue_csr_op),
+    .alu_issue_zimm(alu_issue_zimm),
 
     .load_busy(load_busy),
     .store_busy(store_busy),
@@ -178,6 +223,11 @@ module ISSUE_top (
     .bru_issue_prs1(bru_issue_prs1),
     .bru_issue_prs2(bru_issue_prs2),
     .bru_issue_prd(bru_issue_prd),
-    .bru_issue_rob_idx(bru_issue_rob_idx)
+    .bru_issue_rob_idx(bru_issue_rob_idx),
+
+    .exc_issue_valid(exc_issue_valid),
+    .exc_issue_op(exc_issue_op),
+    .exc_issue_pc(exc_issue_pc),
+    .exc_issue_rob_idx(exc_issue_rob_idx)
   );
 endmodule

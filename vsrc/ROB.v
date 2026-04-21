@@ -11,6 +11,8 @@ module ROB (
   input      [`PADDR_WIDTH-1:0]     idu_pc_0,
   input      [`PREG_ADDR_WIDTH-1:0] idu_preg_0,
   input      [`PREG_ADDR_WIDTH-1:0] idu_opreg_0,
+  input      [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_0,
+  input                             idu_csr_valid_0,
 
   input                             idu_valid_1,
   input      [`WORD_WIDTH-1:0]      idu_inst_1,
@@ -20,6 +22,8 @@ module ROB (
   input      [`PADDR_WIDTH-1:0]     idu_pc_1,
   input      [`PREG_ADDR_WIDTH-1:0] idu_preg_1,
   input      [`PREG_ADDR_WIDTH-1:0] idu_opreg_1,
+  input      [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_1,
+  input                             idu_csr_valid_1,
 
   // 分发的rob idx
   output     [`ROB_ADDR_WIDTH-1:0]  rob_idx_0,
@@ -29,6 +33,7 @@ module ROB (
   input                       wb_rob_valid_0,
   input [`ROB_ADDR_WIDTH-1:0] wb_rob_idx_0,
   input [`WORD_WIDTH-1:0]     wb_rob_wd_0,
+  input [`WORD_WIDTH-1:0]     wb_rob_csr_wd_0,
   input                       wb_rob_valid_1,
   input [`ROB_ADDR_WIDTH-1:0] wb_rob_idx_1,
   input [`WORD_WIDTH-1:0]     wb_rob_wd_1,
@@ -37,6 +42,11 @@ module ROB (
   input [`WORD_WIDTH-1:0]     wb_rob_wd_2,
   input [`PADDR_WIDTH-1:0]    wb_rob_jump_addr,
   input                       wb_rob_jump_flag,
+
+  input                       wb_rob_valid_3,
+  input [`ROB_ADDR_WIDTH-1:0] wb_rob_idx_3,
+  input [`PADDR_WIDTH-1:0]    wb_rob_exc_jump_addr,
+  input [`EXC_EVENT_WIDTH-1:0]wb_rob_exc_event,
   
   // retire - rename
   output reg                    retire_valid_0,
@@ -45,6 +55,8 @@ module ROB (
   output                        retire_store_valid_1,
   output                        retire_rd_valid_0,
   output                        retire_rd_valid_1,
+  output                        retire_csr_valid_0,
+  output                        retire_csr_valid_1,
   output [`REG_ADDR_WIDTH-1:0]  retire_areg_0,
   output [`REG_ADDR_WIDTH-1:0]  retire_areg_1,
   output [`PREG_ADDR_WIDTH-1:0] retire_opreg_0,
@@ -59,6 +71,20 @@ module ROB (
   output [`PREG_ADDR_WIDTH-1:0] retire_wa_0,
   output [`PREG_ADDR_WIDTH-1:0] retire_wa_1,
 
+  output [`WORD_WIDTH-1:0]      retire_csr_wd_0,
+  output [`WORD_WIDTH-1:0]      retire_csr_wd_1,
+  output [`CSR_ADDR_WIDTH-1:0]  retire_csr_wa_0,
+  output [`CSR_ADDR_WIDTH-1:0]  retire_csr_wa_1,
+
+  output                        retire_mepc_we_0,
+  output [`WORD_WIDTH-1:0]      retire_mepc_wd_0,
+  output                        retire_mcause_we_0,
+  output [`WORD_WIDTH-1:0]      retire_mcause_wd_0,
+  output                        retire_mepc_we_1,
+  output [`WORD_WIDTH-1:0]      retire_mepc_wd_1,
+  output                        retire_mcause_we_1,
+  output [`WORD_WIDTH-1:0]      retire_mcause_wd_1,
+
   // retire - bru
   // 只会退休一条分支指令，不会退休后面满足条件的指令
   output                          retire_bru_valid,
@@ -71,21 +97,24 @@ module ROB (
 
   // stall
   output                          rob_full
-
 );
 
   // 基于FIFO实现的ROB
   reg  [`FU_TYPE_WIDTH-1:0]   rob_fu_type   [0:`ROB_SIZE-1];
   reg  [`REG_ADDR_WIDTH-1:0]  rob_areg      [0:`ROB_SIZE-1];
   reg  [`PREG_ADDR_WIDTH-1:0] rob_preg      [0:`ROB_SIZE-1];
+  reg  [`CSR_ADDR_WIDTH-1:0]  rob_csr       [0:`ROB_SIZE-1];
   reg  [`PREG_ADDR_WIDTH-1:0] rob_opreg     [0:`ROB_SIZE-1];
   reg  [`PADDR_WIDTH-1:0]     rob_pc        [0:`ROB_SIZE-1];
   reg                         rob_complete  [0:`ROB_SIZE-1];
   reg                         rob_rd_valid  [0:`ROB_SIZE-1];
+  reg                         rob_csr_valid [0:`ROB_SIZE-1];
   reg  [`PADDR_WIDTH-1:0]     rob_jump_addr [0:`ROB_SIZE-1];
   reg                         rob_jump_flag [0:`ROB_SIZE-1];
   reg  [`WORD_WIDTH-1:0]      rob_wd        [0:`ROB_SIZE-1];
+  reg  [`WORD_WIDTH-1:0]      rob_csr_wd    [0:`ROB_SIZE-1];
   reg  [`WORD_WIDTH-1:0]      rob_inst      [0:`ROB_SIZE-1];
+  reg  [`EXC_EVENT_WIDTH-1:0] rob_exc_event [0:`ROB_SIZE-1];
   reg  [`ROB_ADDR_WIDTH:0]    head, tail;
   wire [`ROB_ADDR_WIDTH:0]    tail_next = tail + 1;
   wire [`ROB_ADDR_WIDTH:0]    head_next = head + 1;
@@ -106,6 +135,8 @@ module ROB (
         rob_pc[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_pc_0;
         rob_rd_valid[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_rd_0_valid;
         rob_inst[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_inst_0;
+        rob_csr[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_csr_addr_0;
+        rob_csr_valid[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_csr_valid_0;
         rob_complete[tail[`ROB_ADDR_WIDTH-1:0]] <= 0;
 
         rob_fu_type[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_fu_type_1;
@@ -115,6 +146,8 @@ module ROB (
         rob_pc[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_pc_1;
         rob_rd_valid[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_rd_1_valid;
         rob_inst[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_inst_1;
+        rob_csr[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_csr_addr_1;
+        rob_csr_valid[tail_next[`ROB_ADDR_WIDTH-1:0]] <= idu_csr_valid_1;
         rob_complete[tail_next[`ROB_ADDR_WIDTH-1:0]] <= 0;
         tail <= tail + 2;
       end
@@ -126,6 +159,8 @@ module ROB (
         rob_pc[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_pc_0;
         rob_rd_valid[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_rd_0_valid;
         rob_inst[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_inst_0;
+        rob_csr[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_csr_addr_0;
+        rob_csr_valid[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_csr_valid_0;
         rob_complete[tail[`ROB_ADDR_WIDTH-1:0]] <= 0;
         tail <= tail + 1;
       end
@@ -137,6 +172,8 @@ module ROB (
         rob_pc[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_pc_1;
         rob_rd_valid[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_rd_1_valid;
         rob_inst[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_inst_1;
+        rob_csr[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_csr_addr_1;
+        rob_csr_valid[tail[`ROB_ADDR_WIDTH-1:0]] <= idu_csr_valid_1;
         rob_complete[tail[`ROB_ADDR_WIDTH-1:0]] <= 0;
         tail <= tail + 1;
       end
@@ -151,6 +188,7 @@ module ROB (
       if(wb_rob_valid_0) begin
         rob_complete[wb_rob_idx_0] <= 1'b1;
         rob_wd[wb_rob_idx_0] <= wb_rob_wd_0;
+        rob_csr_wd[wb_rob_idx_0] <= wb_rob_csr_wd_0;
       end
       if(wb_rob_valid_1) begin
         rob_complete[wb_rob_idx_1] <= 1'b1;
@@ -161,6 +199,12 @@ module ROB (
         rob_wd[wb_rob_idx_2] <= wb_rob_wd_2;
         rob_jump_addr[wb_rob_idx_2] <= wb_rob_jump_addr;
         rob_jump_flag[wb_rob_idx_2] <= wb_rob_jump_flag;
+      end
+      if(wb_rob_valid_3) begin
+        rob_complete[wb_rob_idx_3] <= 1'b1;
+        rob_jump_addr[wb_rob_idx_3] <= wb_rob_exc_jump_addr;
+        rob_jump_flag[wb_rob_idx_3] <= 1'b1;
+        rob_exc_event[wb_rob_idx_3] <= wb_rob_exc_event;
       end
       if(retire_valid_0) begin
         rob_complete[head[`ROB_ADDR_WIDTH-1:0]] <= 1'b0;
@@ -202,12 +246,28 @@ module ROB (
   assign retire_preg_0 = rob_preg[head[`ROB_ADDR_WIDTH-1:0]];
   assign retire_preg_1 = rob_preg[head_next[`ROB_ADDR_WIDTH-1:0]];
 
+  assign retire_csr_wa_0 = rob_csr[head[`ROB_ADDR_WIDTH-1:0]];
+  assign retire_csr_wa_1 = rob_csr[head_next[`ROB_ADDR_WIDTH-1:0]];
+  assign retire_csr_valid_0 = rob_csr_valid[head[`ROB_ADDR_WIDTH-1:0]];
+  assign retire_csr_valid_1 = rob_csr_valid[head_next[`ROB_ADDR_WIDTH-1:0]];
+  assign retire_csr_wd_0 = rob_csr_wd[head[`ROB_ADDR_WIDTH-1:0]];
+  assign retire_csr_wd_1 = rob_csr_wd[head_next[`ROB_ADDR_WIDTH-1:0]];
+
+  assign retire_mepc_wd_0 = rob_pc[head[`ROB_ADDR_WIDTH-1:0]];
+  assign retire_mepc_wd_1 = rob_pc[head_next[`ROB_ADDR_WIDTH-1:0]];
+  assign retire_mcause_wd_0 = 32'hb;
+  assign retire_mcause_wd_1 = 32'hb;
+  assign retire_mepc_we_0 = rob_exc_event[head[`ROB_ADDR_WIDTH-1:0]] == `EXC_ECALL && rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_EXCU;
+  assign retire_mepc_we_1 = rob_exc_event[head_next[`ROB_ADDR_WIDTH-1:0]] == `EXC_ECALL && rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_EXCU;
+  assign retire_mcause_we_0 = rob_exc_event[head[`ROB_ADDR_WIDTH-1:0]] == `EXC_ECALL && rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_EXCU;
+  assign retire_mcause_we_1 = rob_exc_event[head_next[`ROB_ADDR_WIDTH-1:0]] == `EXC_ECALL && rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_EXCU;
+
   // retire - complete
   wire head_complete = rob_complete[head[`ROB_ADDR_WIDTH-1:0]];
   wire head_next_complete = rob_complete[head[`ROB_ADDR_WIDTH-1:0]] & rob_complete[head_next[`ROB_ADDR_WIDTH-1:0]];
   // bru
-  wire head_bru = (rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU) || (rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP);
-  wire head_next_bru = (rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU)|| (rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP);
+  wire head_bru = (rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU) || (rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP) || (rob_fu_type[head[`ROB_ADDR_WIDTH-1:0]] == `FU_EXCU);
+  wire head_next_bru = (rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_BRU)|| (rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_JUMP) || (rob_fu_type[head_next[`ROB_ADDR_WIDTH-1:0]] == `FU_EXCU);
   assign retire_bru_valid = rob_complete[head[`ROB_ADDR_WIDTH-1:0]] & head_bru;
   assign retire_bru_addr = rob_jump_addr[head[`ROB_ADDR_WIDTH-1:0]];
   assign retire_bru_flag = rob_jump_flag[head[`ROB_ADDR_WIDTH-1:0]];

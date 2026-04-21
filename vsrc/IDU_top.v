@@ -50,6 +50,9 @@ module IDU_top (
   output     [`OP_WIDTH-1:0]        idu_op_0,
   output     [`FU_TYPE_WIDTH-1:0]   idu_fu_type_0,
   output     [`PADDR_WIDTH-1:0]     idu_pc_0,
+  output     [`CSR_OP_WIDTH-1:0]    idu_csr_op_0,
+  output     [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_0,
+  output     [4:0]                  idu_zimm_0,
   
   output     [`WORD_WIDTH-1:0]      idu_inst_1,
   output     [`PREG_ADDR_WIDTH-1:0] idu_prs1_1,
@@ -61,15 +64,18 @@ module IDU_top (
   output     [`OP_WIDTH-1:0]        idu_op_1,
   output     [`FU_TYPE_WIDTH-1:0]   idu_fu_type_1,
   output     [`PADDR_WIDTH-1:0]     idu_pc_1,
+  output     [`CSR_OP_WIDTH-1:0]    idu_csr_op_1,
+  output     [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_1,
+  output     [4:0]                  idu_zimm_1,
 
   output                            idu_bru_valid
 );
 
 // 遇到分支指令就暂停取指
 assign idu_valid_0 = ifu_valid_0;
-assign idu_valid_1 = (idu_fu_type_0 == `FU_BRU || idu_fu_type_0 == `FU_JUMP) ? 1'b0 : ifu_valid_1;
+assign idu_valid_1 = (idu_fu_type_0 == `FU_BRU || idu_fu_type_0 == `FU_JUMP || idu_fu_type_0 == `FU_EXCU) ? 1'b0 : ifu_valid_1;
 
-assign idu_bru_valid = ((ifu_valid_0 && (idu_fu_type_0 == `FU_BRU || idu_fu_type_0 == `FU_JUMP)) || (ifu_valid_1 && (idu_fu_type_1 == `FU_BRU || idu_fu_type_1 == `FU_JUMP)));
+assign idu_bru_valid = ((ifu_valid_0 && (idu_fu_type_0 == `FU_BRU || idu_fu_type_0 == `FU_JUMP || idu_fu_type_0 == `FU_EXCU)) || (ifu_valid_1 && (idu_fu_type_1 == `FU_BRU || idu_fu_type_1 == `FU_JUMP || idu_fu_type_1 == `FU_EXCU)));
 
 assign idu_pc_0 = ifu_pc_0;
 assign idu_pc_1 = ifu_pc_1;
@@ -96,7 +102,10 @@ IDU_decode idu_decode_0 (
   .imm(idu_imm_0),
   .imm_valid(idu_imm_0_valid),
   .op(idu_op_0),
-  .fu_type(idu_fu_type_0)
+  .fu_type(idu_fu_type_0),
+  .csr_addr(idu_csr_addr_0),
+  .zimm(idu_zimm_0),
+  .csr_op(idu_csr_op_0)
 );
 
 IDU_decode idu_decode_1 (
@@ -111,7 +120,10 @@ IDU_decode idu_decode_1 (
   .imm(idu_imm_1),
   .imm_valid(idu_imm_1_valid),
   .op(idu_op_1),
-  .fu_type(idu_fu_type_1)
+  .fu_type(idu_fu_type_1),
+  .csr_addr(idu_csr_addr_1),
+  .zimm(idu_zimm_1),
+  .csr_op(idu_csr_op_1)
 );
 
 endmodule

@@ -11,6 +11,11 @@ module EXU_top (
   input [`WORD_WIDTH-1:0]           bru_psrc1,
   input [`WORD_WIDTH-1:0]           bru_psrc2,
 
+  // CSRF
+  input [`WORD_WIDTH-1:0]           alu_csr,
+  input [`WORD_WIDTH-1:0]           excu_mepc,
+  input [`WORD_WIDTH-1:0]           excu_mtvec,
+
   // 发射到执行单元的指令信息
   input                             alu_issue_valid,
   input [`ROB_ADDR_WIDTH-1:0]       alu_issue_rob_idx,
@@ -18,6 +23,9 @@ module EXU_top (
   input [`WORD_WIDTH-1:0]           alu_issue_imm,
   input                             alu_issue_imm_valid,
   input [`PADDR_WIDTH-1:0]          alu_issue_pc,
+  input [`CSR_ADDR_WIDTH-1:0]       alu_issue_csr_addr,
+  input [`CSR_OP_WIDTH-1:0]         alu_issue_csr_op,
+  input [4:0]                       alu_issue_zimm,
 
   input                             lsu_issue_valid,
   input [`ROB_ADDR_WIDTH-1:0]       lsu_issue_rob_idx,
@@ -32,6 +40,11 @@ module EXU_top (
   input [`WORD_WIDTH-1:0]           bru_issue_imm,
   input                             bru_issue_imm_valid,
   input [`PADDR_WIDTH-1:0]          bru_issue_pc,
+
+  input                             exc_issue_valid,
+  input [`OP_WIDTH-1:0]             exc_issue_op,
+  input [`PADDR_WIDTH-1:0]          exc_issue_pc,
+  input [`ROB_ADDR_WIDTH-1:0]       exc_issue_rob_idx,
   
   // AXI
   output                            lsu_arvalid,
@@ -51,6 +64,7 @@ module EXU_top (
   // alu
   output                            alu_valid,
   output [`WORD_WIDTH-1:0]          alu_wd,
+  output [`WORD_WIDTH-1:0]          alu_csr_wd,
   output [`ROB_ADDR_WIDTH-1:0]      alu_rob_idx,
 
   // lsu - load
@@ -69,6 +83,11 @@ module EXU_top (
   output                            bru_jump_flag,
   output [`ROB_ADDR_WIDTH-1:0]      bru_rob_idx,
   output [`WORD_WIDTH-1:0]          bru_wd,
+  
+  output                            exc_valid,
+  output [`ROB_ADDR_WIDTH-1:0]      exc_rob_idx,
+  output [`PADDR_WIDTH-1:0]         exc_jump_addr,
+  output [`EXC_EVENT_WIDTH-1:0]     exc_event,
 
   // lsu - busy
   output                            load_busy,
@@ -77,12 +96,16 @@ module EXU_top (
   FU_alu alu(
     .alu_psrc1(alu_psrc1),
     .alu_psrc2(alu_psrc2),
+    .alu_csr(alu_csr),
     .alu_issue_op(alu_issue_op),
     .alu_issue_imm(alu_issue_imm),
     .alu_issue_imm_valid(alu_issue_imm_valid),
     .alu_issue_pc(alu_issue_pc),
+    .alu_issue_zimm(alu_issue_zimm),
+    .alu_issue_csr_op(alu_issue_csr_op),
 
-    .alu_wd(alu_wd)
+    .alu_wd(alu_wd),
+    .alu_csr_wd(alu_csr_wd)
   );
 
   FU_lsu lsu(
@@ -134,9 +157,22 @@ module EXU_top (
     .jump_flag(bru_jump_flag),
     .bru_wd(bru_wd)
   );
+
+  FU_excu excu(
+    .excu_mepc(excu_mepc),
+    .excu_mtvec(excu_mtvec),
+    .excu_op(exc_issue_op),
+    
+    .excu_event(exc_event),
+    .excu_jump_addr(exc_jump_addr)
+  );
+
   assign alu_valid = alu_issue_valid;
   assign bru_valid = bru_issue_valid;
+  assign exc_valid = exc_issue_valid;
+
   assign alu_rob_idx = alu_issue_rob_idx;
   assign lsu_rob_idx = lsu_issue_rob_idx;
   assign bru_rob_idx = bru_issue_rob_idx;
+  assign exc_rob_idx = exc_issue_rob_idx;
 endmodule

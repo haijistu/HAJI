@@ -53,7 +53,7 @@ void ftrace_call(int pc, int dnpc);
 // #define ITRACE_COND
 // #define MTRACE_COND
 // #define FTRACE_COND
-#define DIFFTEST_COND
+// #define DIFFTEST_COND
 extern bool difftest_skip_ref;
 extern bool difftest_skip_next_ref;
 void init_monitor(int argc, char *argv[]);
@@ -63,12 +63,12 @@ void inst_display(word_t pc, word_t inst);
 void init_ftrace(const char *elf_file);
 void cpu_exec(uint64_t n);
 typedef struct {
-  word_t gpr[16];
+  word_t gpr[32];
   vaddr_t pc;
-  // vaddr_t mepc;
-  // word_t mstatus;
-  // word_t mcause;
-  // word_t mtvec;
+  vaddr_t mepc;
+  word_t mstatus;
+  word_t mcause;
+  word_t mtvec;
   // word_t mvendorid;
   // word_t marchid;
 } CPU_state;

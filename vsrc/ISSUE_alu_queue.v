@@ -1,5 +1,5 @@
 `include "defines.v"
-module ISSUE_outoforder_queue (
+module ISSUE_alu_queue (
   input clock,
   input reset,
 
@@ -15,6 +15,10 @@ module ISSUE_outoforder_queue (
   input                         dispatch_prs2_valid_0,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prd_0,
   input [`ROB_ADDR_WIDTH-1:0]   dispatch_rob_idx_0,
+  input [`CSR_ADDR_WIDTH-1:0]   dispatch_csr_addr_0,
+  input                         dispatch_csr_ready_0,
+  input [`CSR_OP_WIDTH-1:0]     dispatch_csr_op_0,
+  input [4:0]                   dispatch_zimm_0,
 
   input                         dispatch_valid_1,
   input [`OP_WIDTH-1:0]         dispatch_op_1,
@@ -27,6 +31,10 @@ module ISSUE_outoforder_queue (
   input                         dispatch_prs2_valid_1,
   input [`PREG_ADDR_WIDTH-1:0]  dispatch_prd_1,
   input [`ROB_ADDR_WIDTH-1:0]   dispatch_rob_idx_1,
+  input [`CSR_ADDR_WIDTH-1:0]   dispatch_csr_addr_1,
+  input                         dispatch_csr_ready_1,
+  input [`CSR_OP_WIDTH-1:0]     dispatch_csr_op_1,
+  input [4:0]                   dispatch_zimm_1,
 
   input                         dispatch_prs1_ready_0,
   input                         dispatch_prs2_ready_0,
@@ -34,7 +42,7 @@ module ISSUE_outoforder_queue (
   input                         dispatch_prs2_ready_1,
 
   // issue
-  output reg                        issue_valid,
+  output reg                    issue_valid,
   output [`OP_WIDTH-1:0]        issue_op,
   output [`WORD_WIDTH-1:0]      issue_imm,
   output                        issue_imm_valid,
@@ -43,12 +51,20 @@ module ISSUE_outoforder_queue (
   output [`PREG_ADDR_WIDTH-1:0] issue_prs2,
   output [`PREG_ADDR_WIDTH-1:0] issue_prd,
   output [`ROB_ADDR_WIDTH-1:0]  issue_rob_idx,
+  output [`CSR_ADDR_WIDTH-1:0]  issue_csr_addr,
+  output [`CSR_OP_WIDTH-1:0]    issue_csr_op,
+  output [4:0]                  issue_zimm,
 
   // wakeup
   input                             retire_valid_0,
   input [`PREG_ADDR_WIDTH-1:0]      retire_prd_0,
   input                             retire_valid_1,
   input [`PREG_ADDR_WIDTH-1:0]      retire_prd_1,
+
+  input                             retire_csr_valid_0,
+  input [`CSR_ADDR_WIDTH-1:0]       retire_csr_addr_0,
+  input                             retire_csr_valid_1,
+  input [`CSR_ADDR_WIDTH-1:0]       retire_csr_addr_1,
 
   // stall
   output                            queue_full
@@ -66,6 +82,12 @@ module ISSUE_outoforder_queue (
   reg                         queue_src1_ready_next [0:`QUEUE_SIZE-1];
   reg                         queue_src2_ready_next [0:`QUEUE_SIZE-1];
   reg                         queue_imm_valid [0:`QUEUE_SIZE-1];
+
+  reg [`CSR_ADDR_WIDTH-1:0]   queue_csr_addr [0:`QUEUE_SIZE-1];
+  reg [4:0]                   queue_zimm [0:`QUEUE_SIZE-1];
+  reg [`CSR_OP_WIDTH-1:0]     queue_csr_op [0:`QUEUE_SIZE-1];
+  reg                         queue_csr_ready [0:`QUEUE_SIZE-1];
+  reg                         queue_csr_ready_next [0:`QUEUE_SIZE-1];
 
   // issue
   reg [`QUEUE_ADDR_WIDTH-1:0] issue_idx;
@@ -108,6 +130,9 @@ module ISSUE_outoforder_queue (
         queue_prs2[free_id_0] <= dispatch_prs2_0;
         queue_prd[free_id_0] <= dispatch_prd_0;
         queue_rob_idx[free_id_0] <= dispatch_rob_idx_0;
+        queue_csr_addr[free_id_0] <= dispatch_csr_addr_0;
+        queue_zimm[free_id_0] <= dispatch_zimm_0;
+        queue_csr_op[free_id_0] <= dispatch_csr_op_0;
 
         queue_free[free_id_1] <= 1'b1;
         queue_imm[free_id_1] <= dispatch_imm_1;
@@ -118,6 +143,9 @@ module ISSUE_outoforder_queue (
         queue_prs2[free_id_1] <= dispatch_prs2_1;
         queue_prd[free_id_1] <= dispatch_prd_1;
         queue_rob_idx[free_id_1] <= dispatch_rob_idx_1;
+        queue_csr_addr[free_id_1] <= dispatch_csr_addr_1;
+        queue_zimm[free_id_1] <= dispatch_zimm_1;
+        queue_csr_op[free_id_1] <= dispatch_csr_op_1;
       end
       else if(dispatch_valid_0) begin
         queue_free[free_id_0] <= 1'b1;
@@ -129,6 +157,9 @@ module ISSUE_outoforder_queue (
         queue_prs2[free_id_0] <= dispatch_prs2_0;
         queue_prd[free_id_0] <= dispatch_prd_0;
         queue_rob_idx[free_id_0] <= dispatch_rob_idx_0;
+        queue_csr_addr[free_id_0] <= dispatch_csr_addr_0;
+        queue_zimm[free_id_0] <= dispatch_zimm_0;
+        queue_csr_op[free_id_0] <= dispatch_csr_op_0;
       end
       else if(dispatch_valid_1) begin
         queue_free[free_id_0] <= 1'b1;
@@ -140,6 +171,9 @@ module ISSUE_outoforder_queue (
         queue_prs2[free_id_0] <= dispatch_prs2_1;
         queue_prd[free_id_0] <= dispatch_prd_1;
         queue_rob_idx[free_id_0] <= dispatch_rob_idx_1;
+        queue_csr_addr[free_id_0] <= dispatch_csr_addr_1;
+        queue_zimm[free_id_0] <= dispatch_zimm_1;
+        queue_csr_op[free_id_0] <= dispatch_csr_op_1;
       end
 
       // issue
@@ -148,48 +182,59 @@ module ISSUE_outoforder_queue (
       end
     end
   end
-  
+
   // issue
   wire [`QUEUE_SIZE-1:0] ready_vec;
   generate
     for (genvar i = 0; i < `QUEUE_SIZE; i = i + 1) begin
-      assign ready_vec[i] = queue_free[i] && queue_src1_ready[i] && queue_src2_ready[i];
+      assign ready_vec[i] = queue_free[i] && queue_src1_ready[i] && queue_src2_ready[i] && ((queue_csr_op[i][`CSR_OP_WIDTH-1] == 0) || queue_csr_ready[i]);
     end
-  endgenerate
+  endgenerate  
 
   // wakeup
   always @(*) begin
     for(i = 0; i < `QUEUE_SIZE; i = i + 1) begin
       queue_src1_ready_next[i] = queue_src1_ready[i];
       queue_src2_ready_next[i] = queue_src2_ready[i];
+      queue_csr_ready_next[i] = queue_csr_ready[i];
     end
+
     if(dispatch_valid_0 && dispatch_valid_1) begin
       queue_src1_ready_next[free_id_0] = dispatch_prs1_valid_0 ? dispatch_prs1_ready_0 : 1'b1;
       queue_src2_ready_next[free_id_0] = dispatch_prs2_valid_0 ? dispatch_prs2_ready_0 : 1'b1;
       queue_src1_ready_next[free_id_1] = dispatch_prs1_valid_1 ? dispatch_prs1_ready_1 : 1'b1;
       queue_src2_ready_next[free_id_1] = dispatch_prs2_valid_1 ? dispatch_prs2_ready_1 : 1'b1;
+      
+      queue_csr_ready_next[free_id_0] = dispatch_csr_ready_0;
+      queue_csr_ready_next[free_id_1] = dispatch_csr_ready_1;
     end
     else if(dispatch_valid_0) begin
       queue_src1_ready_next[free_id_0] = dispatch_prs1_valid_0 ? dispatch_prs1_ready_0 : 1'b1;
       queue_src2_ready_next[free_id_0] = dispatch_prs2_valid_0 ? dispatch_prs2_ready_0 : 1'b1;
+      queue_csr_ready_next[free_id_0] = dispatch_csr_ready_0;
     end
     else begin
       queue_src1_ready_next[free_id_0] = dispatch_prs1_valid_1 ? dispatch_prs1_ready_1 : 1'b1;
       queue_src2_ready_next[free_id_0] = dispatch_prs2_valid_1 ? dispatch_prs2_ready_1 : 1'b1;
+      queue_csr_ready_next[free_id_0] = dispatch_csr_ready_1;
     end
+
     if(retire_valid_0) begin
       for (i = 0; i < `QUEUE_SIZE; i = i + 1) begin
         if (queue_free[i]) begin
           if (queue_prs1[i] == retire_prd_0) queue_src1_ready_next[i] = 1;
           if (queue_prs2[i] == retire_prd_0) queue_src2_ready_next[i] = 1;
+          if (retire_csr_valid_0 && queue_csr_addr[i] == retire_csr_addr_0) queue_csr_ready_next[i] = 1;
         end
       end
     end
+    
     if(retire_valid_1) begin
       for (i = 0; i < `QUEUE_SIZE; i = i + 1) begin
         if (queue_free[i]) begin
           if (queue_prs1[i] == retire_prd_1) queue_src1_ready_next[i] = 1;
           if (queue_prs2[i] == retire_prd_1) queue_src2_ready_next[i] = 1;
+          if (retire_csr_valid_1 && queue_csr_addr[i] == retire_csr_addr_1) queue_csr_ready_next[i] = 1;
         end
       end
     end
@@ -200,6 +245,7 @@ module ISSUE_outoforder_queue (
       for(i = 0; i < `QUEUE_SIZE; i = i + 1) begin
         queue_src1_ready[i] <= queue_src1_ready_next[i];
         queue_src2_ready[i] <= queue_src2_ready_next[i];
+        queue_csr_ready[i] <= queue_csr_ready_next[i];
       end
     end
   end
@@ -224,5 +270,7 @@ module ISSUE_outoforder_queue (
   assign issue_imm = queue_imm[issue_idx];
   assign issue_imm_valid = queue_imm_valid[issue_idx];
   assign issue_pc = queue_pc[issue_idx];
-
+  assign issue_csr_addr = queue_csr_addr[issue_idx];
+  assign issue_csr_op = queue_csr_op[issue_idx];
+  assign issue_zimm = queue_zimm[issue_idx];
 endmodule

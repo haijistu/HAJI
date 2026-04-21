@@ -1,5 +1,4 @@
 `include "defines.v"
-
 module riscv32(
   input clock,
   input reset,
@@ -81,10 +80,6 @@ module riscv32(
   wire                              icache_ivalid;
   wire [`ISSUE_NUM*`WORD_WIDTH-1:0] icache_idata;
 
-  // ifu: jump target
-  wire [`PADDR_WIDTH-1:0] exc_jump_addr;
-  wire                    exc_jump_flag;
-
   // ifu : idu-bru
   wire                    idu_bru_valid;
   // ifu : retire-bru
@@ -126,6 +121,9 @@ module riscv32(
   wire [`OP_WIDTH-1:0]        idu_op_0;
   wire [`FU_TYPE_WIDTH-1:0]   idu_fu_type_0;
   wire [`PADDR_WIDTH-1:0]     idu_pc_0;
+  wire [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_0;
+  wire [`CSR_OP_WIDTH-1:0]    idu_csr_op_0;
+  wire [4:0]                  idu_zimm_0;
 
   wire [`WORD_WIDTH-1:0]      idu_inst_1;
   wire                        idu_valid_1;
@@ -144,10 +142,22 @@ module riscv32(
   wire [`OP_WIDTH-1:0]        idu_op_1;
   wire [`FU_TYPE_WIDTH-1:0]   idu_fu_type_1;
   wire [`PADDR_WIDTH-1:0]     idu_pc_1;
+  wire [`CSR_ADDR_WIDTH-1:0]  idu_csr_addr_1;
+  wire [`CSR_OP_WIDTH-1:0]    idu_csr_op_1;
+  wire [4:0]                  idu_zimm_1;
 
   // rob - dispatch
   wire [`ROB_ADDR_WIDTH-1:0]  rob_idx_0;
   wire [`ROB_ADDR_WIDTH-1:0]  rob_idx_1;
+
+  // csr
+  wire                        issue_csr_ready_0;
+  wire                        issue_csr_ready_1;
+  wire [`WORD_WIDTH-1:0]      excu_mepc;
+  wire [`WORD_WIDTH-1:0]      excu_mtvec;
+
+  wire                        issue_mtvec_ready;
+  wire                        issue_mepc_ready;
 
   // rename - rob
   wire                        rob_commit_0_valid;
@@ -185,6 +195,9 @@ module riscv32(
   wire                        issue_prd_valid_0;
   wire [`REG_ADDR_WIDTH-1:0]  issue_rd_0;
   wire [`PADDR_WIDTH-1:0]     issue_pc_0;
+  wire [`CSR_ADDR_WIDTH-1:0]  issue_csr_addr_0;
+  wire [`CSR_OP_WIDTH-1:0]    issue_csr_op_0;
+  wire [4:0]                  issue_zimm_0;
 
   wire [`WORD_WIDTH-1:0]      issue_inst_1;
   wire                        issue_valid_1;
@@ -201,6 +214,9 @@ module riscv32(
   wire                        issue_prd_valid_1;
   wire [`REG_ADDR_WIDTH-1:0]  issue_rd_1;
   wire [`PADDR_WIDTH-1:0]     issue_pc_1;
+  wire [`CSR_ADDR_WIDTH-1:0]  issue_csr_addr_1;
+  wire [`CSR_OP_WIDTH-1:0]    issue_csr_op_1;
+  wire [4:0]                  issue_zimm_1;
   // issue 发射的有效指令
   wire                        alu_issue_valid;
   wire [`OP_WIDTH-1:0]        alu_issue_op;
@@ -211,6 +227,9 @@ module riscv32(
   wire [`PREG_ADDR_WIDTH-1:0] alu_issue_prs2;
   wire [`PREG_ADDR_WIDTH-1:0] alu_issue_prd;
   wire [`ROB_ADDR_WIDTH-1:0]  alu_issue_rob_idx;
+  wire [`CSR_ADDR_WIDTH-1:0]  alu_issue_csr_addr;
+  wire [`CSR_OP_WIDTH-1:0]    alu_issue_csr_op;
+  wire [4:0]                  alu_issue_zimm;
 
   wire                        lsu_issue_valid;
   wire [`OP_WIDTH-1:0]        lsu_issue_op;
@@ -231,6 +250,11 @@ module riscv32(
   wire [`PREG_ADDR_WIDTH-1:0] bru_issue_prs2;
   wire [`PREG_ADDR_WIDTH-1:0] bru_issue_prd;
   wire [`ROB_ADDR_WIDTH-1:0]  bru_issue_rob_idx;
+
+  wire                        exc_issue_valid;
+  wire [`OP_WIDTH-1:0]        exc_issue_op;
+  wire [`PADDR_WIDTH-1:0]     exc_issue_pc;
+  wire [`ROB_ADDR_WIDTH-1:0]  exc_issue_rob_idx;
   // 一并发送到EXU单元
   wire                        alu_valid;
   wire [`OP_WIDTH-1:0]        alu_op;
@@ -241,6 +265,9 @@ module riscv32(
   wire [`PREG_ADDR_WIDTH-1:0] alu_prs2;
   wire [`PREG_ADDR_WIDTH-1:0] alu_prd;
   wire [`ROB_ADDR_WIDTH-1:0]  alu_rob_idx;
+  wire [`CSR_ADDR_WIDTH-1:0]  alu_csr_addr;
+  wire [`CSR_OP_WIDTH-1:0]    alu_csr_op;
+  wire [4:0]                  alu_zimm;
 
   wire                        lsu_valid;
   wire [`OP_WIDTH-1:0]        lsu_op;
@@ -262,8 +289,14 @@ module riscv32(
   wire [`PREG_ADDR_WIDTH-1:0] bru_prd;
   wire [`ROB_ADDR_WIDTH-1:0]  bru_rob_idx;
 
+  wire                        exc_valid;
+  wire [`OP_WIDTH-1:0]        exc_op;
+  wire [`PADDR_WIDTH-1:0]     exc_pc;
+  wire [`ROB_ADDR_WIDTH-1:0]  exc_rob_idx;
+
   wire [`WORD_WIDTH-1:0]      alu_psrc1;
   wire [`WORD_WIDTH-1:0]      alu_psrc2;
+  wire [`WORD_WIDTH-1:0]      alu_csr;
   wire [`WORD_WIDTH-1:0]      lsu_psrc1;
   wire [`WORD_WIDTH-1:0]      lsu_psrc2;
   wire [`WORD_WIDTH-1:0]      bru_psrc1;
@@ -272,6 +305,7 @@ module riscv32(
   // exu 计算结果
   wire                        alu_wb_valid;
   wire [`WORD_WIDTH-1:0]      alu_wb_wd;
+  wire [`WORD_WIDTH-1:0]      alu_wb_csr_wd;
   wire [`ROB_ADDR_WIDTH-1:0]  alu_wb_rob_idx;
 
   wire                        lsu_wb_load_valid;
@@ -289,10 +323,16 @@ module riscv32(
   wire                        bru_wb_jump_flag;
   wire [`WORD_WIDTH-1:0]      bru_wb_wd;
   wire [`ROB_ADDR_WIDTH-1:0]  bru_wb_rob_idx;
+
+  wire                        exc_wb_valid;
+  wire [`ROB_ADDR_WIDTH-1:0]  exc_wb_rob_idx;
+  wire [`PADDR_WIDTH-1:0]     exc_wb_jump_addr;
+  wire [`EXC_EVENT_WIDTH-1:0] exc_wb_event;
   
   // WB
   wire                        wb_alu_valid;
   wire [`WORD_WIDTH-1:0]      wb_alu_wd;
+  wire [`WORD_WIDTH-1:0]      wb_alu_csr_wd;
   wire [`ROB_ADDR_WIDTH-1:0]  wb_alu_rob_idx;
 
   wire                        wb_lsu_valid;
@@ -305,6 +345,11 @@ module riscv32(
   wire [`WORD_WIDTH-1:0]      wb_bru_wd;
   wire [`ROB_ADDR_WIDTH-1:0]  wb_bru_rob_idx;
 
+  wire                        wb_exc_valid;
+  wire [`ROB_ADDR_WIDTH-1:0]  wb_exc_rob_idx;
+  wire [`PADDR_WIDTH-1:0]     wb_exc_jump_addr;
+  wire [`EXC_EVENT_WIDTH-1:0] wb_exc_event;
+
   // rob - retire
   wire                        retire_valid_0;
   wire                        retire_valid_1;
@@ -314,18 +359,34 @@ module riscv32(
   wire                        retire_store_finish;
   wire                        retire_rd_valid_0;
   wire                        retire_rd_valid_1;
+  wire                        retire_csr_valid_0;
+  wire                        retire_csr_valid_1;
   wire [`PREG_ADDR_WIDTH-1:0] retire_opreg_0;
   wire [`PREG_ADDR_WIDTH-1:0] retire_opreg_1;
   wire [`REG_ADDR_WIDTH-1:0]  retire_areg_0;
   wire [`REG_ADDR_WIDTH-1:0]  retire_areg_1;
   wire [`PREG_ADDR_WIDTH-1:0] retire_preg_0;
   wire [`PREG_ADDR_WIDTH-1:0] retire_preg_1;
+  wire [`CSR_ADDR_WIDTH-1:0]  retire_csr_addr_0;
+  wire [`CSR_ADDR_WIDTH-1:0]  retire_csr_addr_1;
   wire [`ROB_ADDR_WIDTH-1:0]  retire_rob_idx_0;
   wire [`ROB_ADDR_WIDTH-1:0]  retire_rob_idx_1;
   wire [`PREG_ADDR_WIDTH-1:0] retire_wa_0;
   wire [`WORD_WIDTH-1:0]      retire_wd_0;
   wire [`PREG_ADDR_WIDTH-1:0] retire_wa_1;
   wire [`WORD_WIDTH-1:0]      retire_wd_1;
+  wire [`CSR_ADDR_WIDTH-1:0]  retire_csr_wa_0;
+  wire [`WORD_WIDTH-1:0]      retire_csr_wd_0;
+  wire [`CSR_ADDR_WIDTH-1:0]  retire_csr_wa_1;
+  wire [`WORD_WIDTH-1:0]      retire_csr_wd_1;
+  wire                        retire_mepc_we_0;
+  wire [`WORD_WIDTH-1:0]      retire_mepc_wd_0;
+  wire                        retire_mcause_we_0;
+  wire [`WORD_WIDTH-1:0]      retire_mcause_wd_0;
+  wire                        retire_mepc_we_1;
+  wire [`WORD_WIDTH-1:0]      retire_mepc_wd_1;
+  wire                        retire_mcause_we_1;
+  wire [`WORD_WIDTH-1:0]      retire_mcause_wd_1;
 
   // stall
   wire                          rob_full;
@@ -403,8 +464,8 @@ module riscv32(
     .ifu_valid_1(ifu_valid_1),
 
     // Jump Target
-    .exc_jump_addr(exc_jump_addr),
-    .exc_jump_flag(exc_jump_flag)
+    .exc_jump_addr(),
+    .exc_jump_flag()
   );
 
   IFU_IDU_pipeline IFU_IDU_pipeline0(
@@ -475,6 +536,9 @@ module riscv32(
     .idu_imm_0_valid(idu_imm_0_valid),
     .idu_op_0(idu_op_0),
     .idu_fu_type_0(idu_fu_type_0),
+    .idu_csr_addr_0(idu_csr_addr_0),
+    .idu_csr_op_0(idu_csr_op_0),
+    .idu_zimm_0(idu_zimm_0),
     
     .idu_prs1_1(idu_prs1_1),
     .idu_prs2_1(idu_prs2_1),
@@ -485,6 +549,9 @@ module riscv32(
     .idu_imm_1_valid(idu_imm_1_valid),
     .idu_op_1(idu_op_1),
     .idu_fu_type_1(idu_fu_type_1),
+    .idu_csr_addr_1(idu_csr_addr_1),
+    .idu_csr_op_1(idu_csr_op_1),
+    .idu_zimm_1(idu_zimm_1),
 
     .idu_inst_0(idu_inst_0),
     .idu_inst_1(idu_inst_1)
@@ -511,6 +578,9 @@ module riscv32(
     .idu_imm_0_valid(idu_imm_0_valid),
     .idu_op_0(idu_op_0),
     .idu_fu_type_0(idu_fu_type_0),
+    .idu_csr_addr_0(idu_csr_addr_0),
+    .idu_csr_op_0(idu_csr_op_0),
+    .idu_zimm_0(idu_zimm_0),
     
     .idu_inst_1(idu_inst_1),
     .idu_valid_1(idu_valid_1),
@@ -527,6 +597,9 @@ module riscv32(
     .idu_imm_1_valid(idu_imm_1_valid),
     .idu_op_1(idu_op_1),
     .idu_fu_type_1(idu_fu_type_1),
+    .idu_csr_addr_1(idu_csr_addr_1),
+    .idu_csr_op_1(idu_csr_op_1),
+    .idu_zimm_1(idu_zimm_1),
 
     .issue_inst_0(issue_inst_0),
     .issue_valid_0(issue_valid_0),
@@ -543,6 +616,9 @@ module riscv32(
     .issue_imm_0_valid(issue_imm_valid_0),
     .issue_op_0(issue_op_0),
     .issue_fu_type_0(issue_fu_type_0),
+    .issue_csr_addr_0(issue_csr_addr_0),
+    .issue_csr_op_0(issue_csr_op_0),
+    .issue_zimm_0(issue_zimm_0),
     
     .issue_inst_1(issue_inst_1),
     .issue_valid_1(issue_valid_1),
@@ -558,7 +634,10 @@ module riscv32(
     .issue_imm_1(issue_imm_1),
     .issue_imm_1_valid(issue_imm_valid_1),
     .issue_op_1(issue_op_1),
-    .issue_fu_type_1(issue_fu_type_1)
+    .issue_fu_type_1(issue_fu_type_1),
+    .issue_csr_addr_1(issue_csr_addr_1),
+    .issue_csr_op_1(issue_csr_op_1),
+    .issue_zimm_1(issue_zimm_1)
   );
 
   // Dispatch - iq
@@ -579,6 +658,9 @@ module riscv32(
     .idu_imm_valid_0(issue_imm_valid_0),
     .idu_op_0(issue_op_0),
     .idu_fu_type_0(issue_fu_type_0),
+    .idu_csr_addr_0(issue_csr_addr_0),
+    .idu_csr_op_0(issue_csr_op_0),
+    .idu_zimm_0(issue_zimm_0),
 
     .idu_valid_1(issue_valid_1),
     .idu_prs1_valid_1(issue_prs1_valid_1),
@@ -592,10 +674,19 @@ module riscv32(
     .idu_imm_valid_1(issue_imm_valid_1),
     .idu_op_1(issue_op_1),
     .idu_fu_type_1(issue_fu_type_1),
+    .idu_csr_addr_1(issue_csr_addr_1),
+    .idu_csr_op_1(issue_csr_op_1),
+    .idu_zimm_1(issue_zimm_1),
 
     // rob
     .rob_idx_0(rob_idx_0),
     .rob_idx_1(rob_idx_1),
+
+    // csr
+    .issue_csr_ready_0(issue_csr_ready_0),
+    .issue_csr_ready_1(issue_csr_ready_1),
+    .issue_mtvec_ready(issue_mtvec_ready),
+    .issue_mepc_ready(issue_mepc_ready),
 
     // issue
     .alu_issue_valid(alu_issue_valid),
@@ -607,6 +698,9 @@ module riscv32(
     .alu_issue_prs2(alu_issue_prs2),
     .alu_issue_prd(alu_issue_prd),
     .alu_issue_rob_idx(alu_issue_rob_idx),
+    .alu_issue_csr_addr(alu_issue_csr_addr),
+    .alu_issue_csr_op(alu_issue_csr_op),
+    .alu_issue_zimm(alu_issue_zimm),
 
     .load_busy(load_busy),
     .store_busy(store_busy),
@@ -631,11 +725,21 @@ module riscv32(
     .bru_issue_prd(bru_issue_prd),
     .bru_issue_rob_idx(bru_issue_rob_idx),
 
+    .exc_issue_valid(exc_issue_valid),
+    .exc_issue_op(exc_issue_op),
+    .exc_issue_pc(exc_issue_pc),
+    .exc_issue_rob_idx(exc_issue_rob_idx),
+
     // retire
     .retire_valid_0(retire_rd_valid_0 & retire_valid_0),
     .retire_prd_0(retire_preg_0),
     .retire_valid_1(retire_rd_valid_1 & retire_valid_1),
-    .retire_prd_1(retire_preg_1)
+    .retire_prd_1(retire_preg_1),
+
+    .retire_csr_valid_0(retire_csr_valid_0 & retire_valid_0),
+    .retire_csr_valid_1(retire_csr_valid_1 & retire_valid_1),
+    .retire_csr_addr_0(retire_csr_wa_0),
+    .retire_csr_addr_1(retire_csr_wa_1)
   );
 
   ISSUE_EXU_pipeline ISSUE_EXU_pipeline0(
@@ -650,6 +754,9 @@ module riscv32(
     .alu_issue_prs2(alu_issue_prs2),
     .alu_issue_prd(alu_issue_prd),
     .alu_issue_rob_idx(alu_issue_rob_idx),
+    .alu_issue_csr_addr(alu_issue_csr_addr),
+    .alu_issue_csr_op(alu_issue_csr_op),
+    .alu_issue_zimm(alu_issue_zimm),
 
     .lsu_issue_valid(lsu_issue_valid),
     .lsu_issue_op(lsu_issue_op),
@@ -671,6 +778,11 @@ module riscv32(
     .bru_issue_prd(bru_issue_prd),
     .bru_issue_rob_idx(bru_issue_rob_idx),
 
+    .exc_issue_valid(exc_issue_valid),
+    .exc_issue_op(exc_issue_op),
+    .exc_issue_pc(exc_issue_pc),
+    .exc_issue_rob_idx(exc_issue_rob_idx),
+
     .alu_valid(alu_valid),
     .alu_op(alu_op),
     .alu_imm(alu_imm),
@@ -680,6 +792,9 @@ module riscv32(
     .alu_prs2(alu_prs2),
     .alu_prd(alu_prd),
     .alu_rob_idx(alu_rob_idx),
+    .alu_csr_addr(alu_csr_addr),
+    .alu_csr_op(alu_csr_op),
+    .alu_zimm(alu_zimm),
 
     .lsu_valid(lsu_valid),
     .lsu_op(lsu_op),
@@ -699,7 +814,12 @@ module riscv32(
     .bru_prs1(bru_prs1),
     .bru_prs2(bru_prs2),
     .bru_prd(bru_prd),
-    .bru_rob_idx(bru_rob_idx)
+    .bru_rob_idx(bru_rob_idx),
+    
+    .exc_valid(exc_valid),
+    .exc_op(exc_op),
+    .exc_pc(exc_pc),
+    .exc_rob_idx(exc_rob_idx)
   );
 
   EXU_top EXU0(
@@ -708,10 +828,13 @@ module riscv32(
 
     .alu_psrc1(alu_psrc1),
     .alu_psrc2(alu_psrc2),
+    .alu_csr(alu_csr),
     .lsu_psrc1(lsu_psrc1),
     .lsu_psrc2(lsu_psrc2),
     .bru_psrc1(bru_psrc1),
     .bru_psrc2(bru_psrc2),
+    .excu_mepc(excu_mepc),
+    .excu_mtvec(excu_mtvec),
 
     .alu_issue_valid(alu_valid),
     .alu_issue_op(alu_op),
@@ -719,6 +842,9 @@ module riscv32(
     .alu_issue_imm_valid(alu_imm_valid),
     .alu_issue_pc(alu_pc),
     .alu_issue_rob_idx(alu_rob_idx),
+    .alu_issue_csr_addr(alu_csr_addr),
+    .alu_issue_csr_op(alu_csr_op),
+    .alu_issue_zimm(alu_zimm),
 
     .lsu_issue_valid(lsu_valid),
     .lsu_issue_op(lsu_op),
@@ -733,6 +859,11 @@ module riscv32(
     .bru_issue_imm_valid(bru_imm_valid),
     .bru_issue_pc(bru_pc),
     .bru_issue_rob_idx(bru_rob_idx),
+
+    .exc_issue_valid(exc_issue_valid),
+    .exc_issue_op(exc_issue_op),
+    .exc_issue_pc(exc_issue_pc),
+    .exc_issue_rob_idx(exc_issue_rob_idx),
 
     .lsu_arvalid(lsu_arvalid),
     .lsu_arready(lsu_arready),
@@ -750,6 +881,7 @@ module riscv32(
 
     .alu_valid(alu_wb_valid),
     .alu_wd(alu_wb_wd),
+    .alu_csr_wd(alu_wb_csr_wd),
     .alu_rob_idx(alu_wb_rob_idx),
 
     .lsu_load_valid(lsu_wb_load_valid),
@@ -768,7 +900,12 @@ module riscv32(
     .bru_jump_addr(bru_wb_jump_addr),
     .bru_jump_flag(bru_wb_jump_flag),
     .bru_wd(bru_wb_wd),
-    .bru_rob_idx(bru_wb_rob_idx)
+    .bru_rob_idx(bru_wb_rob_idx),
+
+    .exc_valid(exc_wb_valid),
+    .exc_rob_idx(exc_wb_rob_idx),
+    .exc_jump_addr(exc_wb_jump_addr),
+    .exc_event(exc_wb_event)
   );
 
   EXU_WB_pipeline EXU_WB_pipeline0(
@@ -777,6 +914,7 @@ module riscv32(
 
     .alu_valid(alu_wb_valid),
     .alu_wd(alu_wb_wd),
+    .alu_csr_wd(alu_wb_csr_wd),
     .alu_rob_idx(alu_wb_rob_idx),
     .lsu_valid(lsu_wb_load_valid || lsu_wb_store_valid),
     .lsu_wd(lsu_wb_wd),
@@ -786,9 +924,14 @@ module riscv32(
     .bru_jump_flag(bru_wb_jump_flag),
     .bru_wd(bru_wb_wd),
     .bru_rob_idx(bru_wb_rob_idx),
+    .exc_valid(exc_wb_valid),
+    .exc_rob_idx(exc_wb_rob_idx),
+    .exc_jump_addr(exc_wb_jump_addr),
+    .exc_event(exc_wb_event),
 
     .wb_alu_valid(wb_alu_valid),
     .wb_alu_wd(wb_alu_wd),
+    .wb_alu_csr_wd(wb_alu_csr_wd),
     .wb_alu_rob_idx(wb_alu_rob_idx),
     .wb_lsu_valid(wb_lsu_valid),
     .wb_lsu_wd(wb_lsu_wd),
@@ -797,7 +940,12 @@ module riscv32(
     .wb_bru_jump_addr(wb_bru_jump_addr),
     .wb_bru_jump_flag(wb_bru_jump_flag),
     .wb_bru_wd(wb_bru_wd),
-    .wb_bru_rob_idx(wb_bru_rob_idx)
+    .wb_bru_rob_idx(wb_bru_rob_idx),
+    
+    .wb_exc_valid(wb_exc_valid),
+    .wb_exc_rob_idx(wb_exc_rob_idx),
+    .wb_exc_jump_addr(wb_exc_jump_addr),
+    .wb_exc_event(wb_exc_event)
   );
 
   ROB ROB0(
@@ -811,6 +959,8 @@ module riscv32(
     .idu_pc_0(issue_pc_0),
     .idu_preg_0(issue_prd_0),
     .idu_opreg_0(issue_oprd_0),
+    .idu_csr_addr_0(issue_csr_addr_0),
+    .idu_csr_valid_0(issue_csr_op_0[`CSR_OP_WIDTH-1]),
 
     .idu_valid_1(issue_valid_1),
     .idu_fu_type_1(issue_fu_type_1),
@@ -819,6 +969,8 @@ module riscv32(
     .idu_pc_1(issue_pc_1),
     .idu_preg_1(issue_prd_1),
     .idu_opreg_1(issue_oprd_1),
+    .idu_csr_addr_1(issue_csr_addr_1),
+    .idu_csr_valid_1(issue_csr_op_1[`CSR_OP_WIDTH-1]),
 
     .rob_idx_0(rob_idx_0),
     .rob_idx_1(rob_idx_1),
@@ -826,6 +978,7 @@ module riscv32(
     .wb_rob_valid_0(wb_alu_valid),
     .wb_rob_idx_0(wb_alu_rob_idx),
     .wb_rob_wd_0(wb_alu_wd),
+    .wb_rob_csr_wd_0(wb_alu_csr_wd),
     .wb_rob_valid_1(wb_lsu_valid),
     .wb_rob_idx_1(wb_lsu_rob_idx),
     .wb_rob_wd_1(wb_lsu_wd),
@@ -835,6 +988,11 @@ module riscv32(
     .wb_rob_jump_addr(wb_bru_jump_addr),
     .wb_rob_jump_flag(wb_bru_jump_flag),
 
+    .wb_rob_valid_3(wb_exc_valid),
+    .wb_rob_idx_3(wb_exc_rob_idx),
+    .wb_rob_exc_jump_addr(wb_exc_jump_addr),
+    .wb_rob_exc_event(wb_exc_event),
+
     // 释放物理寄存器
     .retire_valid_0(retire_valid_0),
     .retire_valid_1(retire_valid_1),
@@ -842,6 +1000,8 @@ module riscv32(
     .retire_store_valid_1(retire_store_valid_1),
     .retire_rd_valid_0(retire_rd_valid_0),
     .retire_rd_valid_1(retire_rd_valid_1),
+    .retire_csr_valid_0(retire_csr_valid_0),
+    .retire_csr_valid_1(retire_csr_valid_1),
     .retire_opreg_0(retire_opreg_0),
     .retire_opreg_1(retire_opreg_1),
     .retire_areg_0(retire_areg_0),
@@ -855,6 +1015,19 @@ module riscv32(
     .retire_wd_0(retire_wd_0),
     .retire_wa_1(retire_wa_1),
     .retire_wd_1(retire_wd_1),
+    .retire_csr_wa_0(retire_csr_wa_0),
+    .retire_csr_wd_0(retire_csr_wd_0),
+    .retire_csr_wa_1(retire_csr_wa_1),
+    .retire_csr_wd_1(retire_csr_wd_1),
+
+    .retire_mepc_we_0(retire_mepc_we_0),
+    .retire_mepc_wd_0(retire_mepc_wd_0),
+    .retire_mcause_we_0(retire_mcause_we_0),
+    .retire_mcause_wd_0(retire_mcause_wd_0),
+    .retire_mepc_we_1(retire_mepc_we_1),
+    .retire_mepc_wd_1(retire_mepc_wd_1),
+    .retire_mcause_we_1(retire_mcause_we_1),
+    .retire_mcause_wd_1(retire_mcause_wd_1),
 
     .idu_inst_0(issue_inst_0),
     .idu_inst_1(issue_inst_1),
@@ -970,6 +1143,43 @@ module riscv32(
     .we_1(retire_rd_valid_1 && retire_valid_1),
     .wa_1(retire_wa_1),
     .wd_1(retire_wd_1)
+  );
+
+  CSRF CSRF0(
+    .clock(clock),
+    .reset(reset),
+
+    .csr_wa0(retire_csr_wa_0),
+    .csr_wd0(retire_csr_wd_0),
+    .csr_we0(retire_csr_valid_0 && retire_valid_0),
+    .csr_wa1(retire_csr_wa_1),
+    .csr_wd1(retire_csr_wd_1),
+    .csr_we1(retire_csr_valid_1 && retire_valid_1),
+
+    .csr_raddr(alu_csr_addr),
+    .csr_rdata(alu_csr),
+
+    .csr_mepc(excu_mepc),
+    .csr_mtvec(excu_mtvec),
+
+    .retire_mepc_we_0(retire_mepc_we_0 && retire_valid_0),
+    .retire_mepc_wd_0(retire_mepc_wd_0),
+    .retire_mcause_we_0(retire_mcause_we_0 && retire_valid_0),
+    .retire_mcause_wd_0(retire_mcause_wd_0),
+    .retire_mepc_we_1(retire_mepc_we_1 && retire_valid_0),
+    .retire_mepc_wd_1(retire_mepc_wd_1),
+    .retire_mcause_we_1(retire_mcause_we_1 && retire_valid_0),
+    .retire_mcause_wd_1(retire_mcause_wd_1),
+
+    .issue_csr_valid_0(issue_csr_op_0[`CSR_OP_WIDTH-1]),
+    .issue_csr_addr_0(issue_csr_addr_0),
+    .issue_csr_ready_0(issue_csr_ready_0),
+    .issue_csr_valid_1(issue_csr_op_1[`CSR_OP_WIDTH-1]),
+    .issue_csr_addr_1(issue_csr_addr_1),
+    .issue_csr_ready_1(issue_csr_ready_1),
+
+    .issue_mtvec_ready(issue_mtvec_ready),
+    .issue_mepc_ready(issue_mepc_ready)
   );
 
   STALL STALL0(

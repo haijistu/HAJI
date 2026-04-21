@@ -28,6 +28,9 @@
 `define BRANCH_BLTU 4'b0100
 `define BRANCH_BGEU 4'b0101
 
+`define EXCEPTION_ECALL 4'b1000
+`define EXCEPTION_MRET  4'b0100
+
 `define JUMP_JAL    4'b1000
 `define JUMP_JALR   4'b1001
 
@@ -35,6 +38,7 @@
 `define WORD_WIDTH      32
 `define PADDR_WIDTH     32
 `define OP_WIDTH        4
+`define CSR_OP_WIDTH    4
 `define FU_TYPE_WIDTH   5
 `define REG_ADDR_WIDTH  5
 `define REG_NUM         32
@@ -48,17 +52,10 @@
 
 `define INIT_PC         32'h30000000
 
-`define CSR_MCYCLE      12'hb00
-`define CSR_MCYCLEH     12'hb80
-`define CSR_MVENDORID   12'hf11
-`define CSR_ARCHID      12'hf12
 `define CSR_MSTATUS     12'h300
 `define CSR_MEPC        12'h341
 `define CSR_MCAUSE      12'h342
 `define CSR_MTVEC       12'h305
-
-`define EXC_ECALL       2'b01
-`define EXC_MRET        2'b10
 
 `define SRAM_ADDR_START 32'h80000000
 `define SRAM_ADDR_END   32'h87ffffff
@@ -75,10 +72,15 @@
 `define QUEUE_SIZE  16 // Issue 队列大小
 
 `define FU_ALU  5'b00001
+`define FU_CSR  5'b11000
 `define FU_LOAD  5'b00010
 `define FU_STORE  5'b00100
 `define FU_BRU  5'b01000
 `define FU_JUMP  5'b10000
+`define FU_EXCU  5'b10100
+
+`define EXC_ECALL 2'b01
+`define EXC_MRET  2'b10
 
 `define ROB_SIZE 16
 `define ROB_ADDR_WIDTH 4
